@@ -5,6 +5,7 @@ All code was run in R version 4.4.2 (2024-10-31). Necessary packages to run scri
 
 All R scripts are written assuming the below organizational structure:
 
+```
 Bromecast-cg_demography
 │   README.md
 └─── code
@@ -13,3 +14,4 @@ Bromecast-cg_demography
 └─── outputs
 └─── supp_code
 └─── supp_data
+```
