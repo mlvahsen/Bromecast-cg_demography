@@ -1,8 +1,13 @@
 ## Preliminaries ####
+# Load libraries
+library(rjags);library(tidyverse);library(cmdstanr);library(posterior);
+library(bayesplot); library(janitor); library(patchwork); library(lubridate); 
 library(loo)
-# Source data for modeling (this takes a minute or so to load because some of my
-# cleaning code is a bit inefficient)
-source("supp_code/data_prep.R")
+# Source data for modeling -- Becca you can ignore this
+# source("supp_code/data_prep.R")
+
+# Read in data
+cg_model <- read_csv("supp_data/model_data.csv")
 
 ## FECUNDITY MODEL WITH RANDOM SLOPES ####
 # Make data set of just plants that survived and reproduced
