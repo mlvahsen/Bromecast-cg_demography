@@ -75,4 +75,4 @@ generated quantities {
 
 f <- write_stan_file(stan_model,
                      basename = "demo_model_surv_noslopes",
-                     dir = "modeling/code/cg_manuscript/cmdstanr_write_stan_file_dir")
+                     dir = "supp_code/cmdstanr_write_stan_file_dir")

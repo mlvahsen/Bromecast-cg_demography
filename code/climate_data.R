@@ -1,24 +1,24 @@
 # Load libraries
 library(tidyverse); library(here); library(stringi)
 library(prism); library(raster); library(geosphere); library(sf);
-library(dismo)
+library(dismo); library(factoextra); library(ggfortify)
 
 # Read GPS data for all genotypes from main Bromecast repository
-gps <- read_csv("gardens/deriveddata/BioclimateOfOrigin_AllGenotypes.csv") %>% 
-  dplyr::select(lon, lat, site_code) 
+gps <- read_csv("https://raw.githubusercontent.com/pbadler/bromecast-data/refs/heads/main/gardens/deriveddata/BioclimateOfOrigin_AllGenotypes.csv") %>% 
+  dplyr::select(lon, lat, site_code, genotype) 
 
 # Set download folder for PRISM data
-prism_set_dl_dir("modeling/data/climate_data/")
+prism_set_dl_dir("supp_data/climate_data/")
 
 ## Genotype information ####
 
-# Download climate normals 
-# get_prism_normals(type = "ppt",
-#                  mon = 1:12,
-#                  resolution = "4km",
-#                  keepZip = F)
+## Note: only need to run this once to download data -- once downloaded, these
+## are accessed from the supp_data/climate_data folder
 
-# Get tmin, tmax, and ppt climate normals
+# Download climate normals get_prism_normals(type = "ppt", mon = 1:12,
+# resolution = "4km", keepZip = F)
+
+# Get climate normals
 to_slice <- prism_archive_ls()
 stacked <- pd_stack(to_slice)
 proj4string(stacked) <- CRS("+proj=longlat +ellps=WGS84 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
@@ -48,8 +48,10 @@ as_tibble(biovars(prec = store[8:nrow(store),1:12],
 # Download daily weather data for entire experimental period
 
 # Set download folder for PRISM data
-prism_set_dl_dir("modeling/data/weather_data/")
+prism_set_dl_dir("supp_data/weather_data/")
 
+## Note: only need to run this once to download data -- once downloaded, these
+## are accessed from the supp_data/weather_data folder
 # get_prism_monthlys(type = "ppt",
 #                  year = 2021:2023,
 #                  keepZip = F)
@@ -60,6 +62,7 @@ stacked <- pd_stack(to_slice)
 proj4string(stacked) <- CRS("+proj=longlat +ellps=WGS84 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
 df <- data.frame(rasterToPoints(stacked))
 
+# Filter to just common garden sites
 gps_sites <- gps %>% filter(site_code %in% c("BA", "SS", "CH", "WI"))
 
 # Get closest prism point to each GPS point
@@ -111,37 +114,29 @@ pca_out <- prcomp(all_clim[,2:ncol(all_clim)])
 # Get percent explained by each PC axis
 round(pca_out$sdev^2 / sum(pca_out$sdev^2),3) -> perc_explained
 
+# Figure out which variables are contributing most to PC1
+sort(get_pca_var(pca_out)$contrib[,1], decreasing = T)
+# Temperature and precipitation (bio1 = mean temp, bio11 = mean temp coldest Q,
+# bio6 = min temp coldest month, bio12 = annual precip, bio13 = precip of the
+# wettest month)
+autoplot(pca_out, label = T, loadings = T,
+         loadings.label = T)
+# More NEGATIVE values are hotter and drier; more POSITIVE values are cooler and
+# wetter
+
 # Bind PC axis data with original data
 cbind(all_clim, pca_out$x) -> bioclim_pc
 
 # Calculate PC distance between genotypes/site × year combos
-#pc1_pc2 <- bioclim_pc %>% dplyr::select(pc1 = PC1, pc2 = PC2)
 pc1 <- bioclim_pc %>% dplyr::select(pc1 = PC1) %>% pull(pc1)
-# # Make distance matrix based on pc1 and pc2 values
-# dist_matrix <- as.matrix(dist(pc1))
-# 
+
 # Figure out which columns are for the different sites
 which(bioclim_pc$genotype %in% c("BA_22", "CH_22",
                                  "SS_22", "WI_22",
                                  "BA_23", "CH_23",
                                  "SS_23", "WI_23")) -> site_ids
-# 
-# # Bring together data frame of genotypes and site specific distances
-# bioclim_pc %>% 
-#   mutate(BA_22 = dist_matrix[,site_ids[1]],
-#          CH_22 = dist_matrix[,site_ids[2]],
-#          SS_22 = dist_matrix[,site_ids[3]],
-#          WI_22 = dist_matrix[,site_ids[4]],
-#          BA_23 = dist_matrix[,site_ids[5]],
-#          CH_23 = dist_matrix[,site_ids[6]],
-#          SS_23 = dist_matrix[,site_ids[7]],
-#          WI_23 = dist_matrix[,site_ids[8]]) %>% 
-#   dplyr::select(genotype, BA_22, CH_22, SS_22, WI_22,
-#                 BA_23, CH_23, SS_23, WI_23) %>% 
-#   filter(genotype %notin% c("BA_22", "CH_22", "SS_22", "WI_22",
-#                             "BA_23", "CH_23", "SS_23", "WI_23")) %>% 
-#   rename(site_code = genotype) -> genotypes_pcs
 
+# Calculate absolute distance between PC1 for source climate and PC1 for weather
 bioclim_pc %>%
   filter(genotype %notin% c("BA_22", "CH_22", "SS_22", "WI_22",
                             "BA_23", "CH_23", "SS_23", "WI_23")) %>%
@@ -158,11 +153,12 @@ bioclim_pc %>%
   rename(site_code = genotype) -> genotypes_pcs
 
 
-# Read in genotype code info
-genotype_codes <- read_csv("~/Git/Bromecast/gardens/deriveddata/BioclimateOfOrigin_AllGenotypes.csv")
-genotype_codes %>% 
+# Get conversion information between genotype numeric code and alpha-numeric
+# code
+gps %>% 
   dplyr::select(site_code, genotype) -> genotype_codes
 
+# Merge genotype codes back with calculated PC distances
 merge(genotype_codes, genotypes_pcs) -> merged_genotype_dists
 
 merged_genotype_dists %>% 

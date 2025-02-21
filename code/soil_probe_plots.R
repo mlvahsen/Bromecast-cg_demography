@@ -1,6 +1,6 @@
 png("~/Desktop/temp_line.png", height = 6, width = 12, res = 300, units = "in")
 
-for_model_sample %>% 
+cg_model_fecun %>% 
   dplyr::select(site_year_gravel,temp_fecun, vwc_avg) %>%
   distinct() %>% 
   mutate(site = substr(site_year_gravel, 1, 2),

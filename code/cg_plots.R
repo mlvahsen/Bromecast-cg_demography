@@ -34,19 +34,14 @@ merge(clim_g_pred %>% distinct(), clim_g_preds %>% distinct()) %>%
   labs(y = "fitness",
        x = "climate distance")
 
-# Temp
-png("~/Desktop/temp_gxe_f.png", height = 4, width = 10, units = "in", res = 300)
-a_temp + b_temp + plot_layout(guides = "collect", widths = c(2,1)) 
-dev.off()
-png("~/Desktop/temp_gxe_s.png", height = 4, width = 10, units = "in", res = 300)
-a_temp_s + b_temp_s + plot_layout(guides = "collect", widths = c(2,1)) 
-dev.off()
+
+# Soil moisture
+((a + b) / (a_s + b_s)) + vwc_fitness + plot_layout(guides = "collect")
 
 temp_g_pred %>%
   distinct() %>% 
   arrange(genotype, temp_fecun) -> temp_g_pred
 
-png("~/Desktop/temp_gxe_fit.png", height = 5, width = 6, units = "in", res = 300)
 temp_g_preds %>%
   distinct() %>% 
   arrange(genotype, temp_surv) %>% 
@@ -59,8 +54,11 @@ temp_g_preds %>%
   #theme(legend.position = "none") +
   labs(y = "ln(fitness)",
        x = "temperature (°C)") +
-  scale_color_distiller(palette = "RdYlBu", direction = 1)
-dev.off()
+  scale_color_distiller(palette = "RdYlBu", direction = 1) -> temp_fitness
+
+# Temp
+temp_half <- (a_temp_s + b_temp_s) / (a_temp + b_temp) + plot_layout(widths = c(4,4,2,1)) & theme(legend.position = "none") 
+temp_half | temp_fitness 
 
 # Neighbors
 png("~/Desktop/neighbors_gxe.png", height = 4, width = 10.5, units = "in", res = 300)
