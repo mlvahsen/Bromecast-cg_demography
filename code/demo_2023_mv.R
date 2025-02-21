@@ -17,9 +17,6 @@ cg_model$survived <- ifelse((cg_model$inflor_mass) > 0, 1, 0)
 cg_model %>% 
   filter(survived == 1) -> cg_model_fecun
 
-# Set contrasts
-options(contrasts = c("contr.sum", "contr.poly"))
-
 # Center and scale continuous variables, make factors, make survival response
 # binary
 cg_model_fecun$clim_dist_sc <- scale(cg_model_fecun$clim_dist)[,1]
