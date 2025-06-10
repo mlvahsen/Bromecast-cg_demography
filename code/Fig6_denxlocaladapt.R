@@ -246,6 +246,6 @@ tibble(opt = opt1 - opt2) %>%
 
 quantile(opt1-opt2, c(0.025, 0.975))
 
-png("figs/Fig_supp_dens_adapt.png", height = 4, width = 7.5, units = "in", res = 300)
+png("figs/FigS4_dens_adapt.png", height = 4, width = 7.5, units = "in", res = 300)
 a_fit + b_fit
 dev.off()
