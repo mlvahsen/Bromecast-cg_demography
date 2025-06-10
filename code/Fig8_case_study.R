@@ -229,8 +229,8 @@ dev.off()
 
 # Get effect size for Joshua Tree (calculate median instead of mean bc very skewed)
 median(exp(lnfit_gen91_high) / exp(lnfit_gen91_low))
-# 4.122475 times more seeds on the original scale
+# 3.598363 times more seeds on the original scale
 
 # Get effect size for Joshua Tree (calculate median instead of mean bc very skewed)
 median(exp(lnfit_gen5_low) / exp(lnfit_gen5_high))
-# 2.419616 times more seeds on the original scale
+# 2.791374 times more seeds on the original scale
