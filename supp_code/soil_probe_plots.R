@@ -1,3 +1,4 @@
+# Makes plot of soil probe data (Figure 2)
 
 # Load libraries
 library(rjags);library(tidyverse);library(cmdstanr);library(posterior);
@@ -20,55 +21,62 @@ cg_model_fecun %>%
   dplyr::select(site_year_gravel,temp_fecun, vwc_avg) %>%
   distinct() %>% 
   mutate(site = substr(site_year_gravel, 1, 2),
-         year = substr(site_year_gravel, 6, 7),
+         year = paste(20, substr(site_year_gravel, 6, 7), sep = ""),
          site_year = paste(site, year, sep = "\n"),
-         gravel = substr(site_year_gravel, 9, 13)) %>% 
-  ggplot(aes(x = temp_fecun, y = 0)) +
-  annotate("segment",x=3,xend=15, y=0, yend=0, linewidth=2) +
-  annotate("segment",x=3,xend=3, y=-0.1,yend=0.1, linewidth=2) +
-  annotate("segment",x=15,xend=15, y=-0.1,yend=0.1, linewidth=2) +
-  annotate("text", x = 3, y = 0, label = "3", vjust = 2, size = 5) +
-  annotate("text", x = 15, y = 0, label = "15", vjust = 2, size = 5) +
-  geom_point(size = 15, shape = 21, aes(color = site, fill = gravel), stroke = 3, alpha = 0.8) +
-  ggrepel::geom_text_repel(aes(label = site_year), col="black", nudge_y = 1, fontface = "bold") +
-  scale_x_continuous(limits = c(3,15)) +
-  scale_y_continuous(limits = c(-1,1)) +
-  theme(panel.background = element_blank(),
-        axis.text = element_blank(),
-        axis.ticks = element_blank(),
-        axis.title = element_blank(),
-        legend.position = "none") +
+         gravel = substr(site_year_gravel, 9, 13)) -> plot_data
+
+plot_data %>% 
+  ggplot(aes(x = temp_fecun, y = vwc_avg)) +
+  geom_point(size = 5, aes(color = site, fill = gravel, shape = year), stroke = 2, alpha = 0.8) +
   scale_fill_manual(values = c("black", "white")) +
   scale_color_manual(values = c("#44AA99", "#AA4499", "#332288", "#6699CC")) +
-  ggtitle("Temperature (°C)")-> a
+  scale_shape_manual(values = c(21,22)) +
+  guides(fill = guide_legend(override.aes = list(shape = 21))) +
+  theme_bw(base_size = 16) +
+  labs(y = "average daily soil moisture\n(volumetric water content)",
+       x = "average daily temperature (°C)") -> xy_plot
+
+# plot_data %>% 
+#   ggplot(aes(x = temp_fecun, y = 0)) +
+#   annotate("segment",x=3,xend=15, y=0, yend=0, linewidth=2) +
+#   annotate("segment",x=3,xend=3, y=-0.1,yend=0.1, linewidth=2) +
+#   annotate("segment",x=15,xend=15, y=-0.1,yend=0.1, linewidth=2) +
+#   annotate("text", x = 3, y = 0, label = "3", vjust = 2, size = 5) +
+#   annotate("text", x = 15, y = 0, label = "15", vjust = 2, size = 5) +
+#   geom_point(size = 15, shape = 21, aes(color = site, fill = gravel), stroke = 3, alpha = 0.8) +
+#   ggrepel::geom_text_repel(aes(label = site_year), col="black", nudge_y = 1, fontface = "bold") +
+#   scale_x_continuous(limits = c(3,15)) +
+#   scale_y_continuous(limits = c(-1,1)) +
+#   theme(panel.background = element_blank(),
+#         axis.text = element_blank(),
+#         axis.ticks = element_blank(),
+#         axis.title = element_blank(),
+#         legend.position = "none") +
+#   scale_fill_manual(values = c("black", "white")) +
+#   scale_color_manual(values = c("#44AA99", "#AA4499", "#332288", "#6699CC")) +
+#   ggtitle("Temperature (°C)")-> a
 
 
-cg_model_fecun %>% 
-  dplyr::select(site_year_gravel,temp_fecun, vwc_avg) %>%
-  distinct() %>% 
-  mutate(site = substr(site_year_gravel, 1, 2),
-         year = substr(site_year_gravel, 6, 7),
-         site_year = paste(site, year, sep = "\n"),
-         gravel = substr(site_year_gravel, 9, 13)) %>% 
-  ggplot(aes(x = vwc_avg, y = 0, color = color)) +
-  annotate("segment",x=0.10,xend=0.25, y=0, yend=0, size=2) +
-  annotate("segment",x=0.10,xend=0.10, y=-0.1,yend=0.1, size=2) +
-  annotate("segment",x=0.25,xend=0.25, y=-0.1,yend=0.1, size=2) +
-  annotate("text", x = 0.10, y = 0, label = "10", vjust = 2, size = 5) +
-  annotate("text", x = 0.25, y = 0, label = "25", vjust = 2, size = 5) +
-  geom_point(size = 15, shape = 21, aes(color = site, fill = gravel), stroke = 3, alpha = 0.8) +
-  ggrepel::geom_text_repel(aes(label = site_year), col="black", nudge_y = 1, fontface = "bold") +
-  scale_x_continuous(limits = c(0.10,0.25)) +
-  scale_y_continuous(limits = c(-1,1)) +
-  theme(panel.background = element_blank(),
-        axis.text = element_blank(),
-        axis.ticks = element_blank(),
-        axis.title = element_blank(),
-        legend.position = "none") +
-  scale_fill_manual(values = c("black", "white")) +
-  scale_color_manual(values = c("#44AA99", "#AA4499", "#332288", "#6699CC")) +
-  ggtitle("Soil moisture (% vwc)") -> b
+# plot_data %>% 
+#   ggplot(aes(x = vwc_avg, y = 0, color = color)) +
+#   annotate("segment",x=0.10,xend=0.25, y=0, yend=0, linewidth=2) +
+#   annotate("segment",x=0.10,xend=0.10, y=-0.1,yend=0.1, linewidth=2) +
+#   annotate("segment",x=0.25,xend=0.25, y=-0.1,yend=0.1, linewidth=2) +
+#   annotate("text", x = 0.10, y = 0, label = "10", vjust = 2, size = 5) +
+#   annotate("text", x = 0.25, y = 0, label = "25", vjust = 2, size = 5) +
+#   geom_point(size = 15, shape = 21, aes(color = site, fill = gravel, linetype = year), stroke = 3, alpha = 0.8) +
+#   ggrepel::geom_text_repel(aes(label = site_year), col="black", nudge_y = 1, fontface = "bold") +
+#   scale_x_continuous(limits = c(0.10,0.25)) +
+#   scale_y_continuous(limits = c(-1,1)) +
+#   theme(panel.background = element_blank(),
+#         axis.text = element_blank(),
+#         axis.ticks = element_blank(),
+#         axis.title = element_blank(),
+#         legend.position = "none") +
+#   scale_fill_manual(values = c("black", "white")) +
+#   scale_color_manual(values = c("#44AA99", "#AA4499", "#332288", "#6699CC")) +
+#   ggtitle("Soil moisture (% vwc)") -> b
 
-png("figs/Fig1_microclimate.png", height = 3.9, width = 9.2, res = 300, units = "in")
-a/b 
+png("figs/Fig1_microclimate.png", height = 5.6, width = 7.5, res = 300, units = "in")
+xy_plot 
 dev.off()

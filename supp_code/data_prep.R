@@ -8,16 +8,19 @@ library(bayesplot); library(janitor); library(patchwork); library(lubridate)
 cg_data <- read_csv("https://raw.githubusercontent.com/pbadler/bromecast-data/main/gardens/deriveddata/cg_fullData_withFlags.csv")
 
 ## Data cleaning ####
-# cg_data %>%
-#   filter(!grepl("smut", note_standard_phen) &
-#            !grepl("smut", note_standard_harvest) &
-#            !grepl("seed_drop", note_standard_phen) &
-#            !grepl("seed_drop", note_standard_harvest) &
-#            !grepl("wrong_spp", note_standard_phen) &
-#            !grepl("wrong_spp", note_standard_harvest) &
-#            !grepl("missing", note_standard_harvest)) -> cg_clean
-
-cg_clean <- cg_data
+cg_data %>%
+  filter(!grepl("smut", note_standard_phen) &
+           !grepl("smut", note_standard_harvest) &
+           !grepl("seed_drop", note_standard_phen) &
+           !grepl("seed_drop", note_standard_harvest) &
+           #!grepl("herbivory", note_standard_phen) &
+           #!grepl("herbivory", note_standard_harvest) &
+           #!grepl("physical_damage", note_standard_phen) &
+           #!grepl("physical_damage", note_standard_harvest) &
+           # grepl("frost_heave", note_standard_phen) &
+           !grepl("wrong_spp", note_standard_phen) &
+           !grepl("wrong_spp", note_standard_harvest) &
+           !grepl("missing", note_standard_harvest)) -> cg_clean
 
 # Get true positives (alive at last phenology check before harvest and
 # successfully harvested) and true negatives (not alive at last phenology check
@@ -196,3 +199,5 @@ merge(cg_model, site_info) -> cg_model
 
 ## Remove all intermediate data objects ####
 rm(list=setdiff(ls(), "cg_model"))
+
+write_csv(cg_model, "data/cg_model_data.csv")
