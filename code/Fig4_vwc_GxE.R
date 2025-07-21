@@ -64,6 +64,8 @@ slopes <- draws %>% as_tibble() %>% dplyr::select(starts_with("genotype_slopes")
 # Initialize the output matrix
 genotype_store<- matrix(NA, nrow = length(seq_vwc), ncol = ncol(intercepts))
 
+genotype_samples_f <- list()
+
 # Vectorized computation of genotype stores
 for (j in 1:ncol(intercepts)) {
   # Extract the relevant intercept and slopes for genotype j
@@ -81,6 +83,7 @@ for (j in 1:ncol(intercepts)) {
   
   # Apply colMeans to reduce the result
   genotype_store[, j] <- rowMeans(store_vwc_gs)
+  genotype_samples_f[[j]] <- store_vwc_gs
 }
 
 as_tibble(genotype_store) -> genotype_store_df
@@ -174,6 +177,8 @@ slopes <- draws_s %>% as_tibble() %>% dplyr::select(starts_with("genotype_slopes
 # Initialize the output matrix
 genotype_stores <- matrix(NA, nrow = length(seq_sc_vwc), ncol = ncol(intercepts))
 
+genotype_samples_s <- list()
+
 # Vectorized computation of genotype stores
 for (j in 1:ncol(intercepts)) {
   # Extract the relevant intercept and slopes for genotype j
@@ -191,6 +196,7 @@ for (j in 1:ncol(intercepts)) {
   
   # Apply colMeans to reduce the result
   genotype_stores[, j] <- rowMeans(store_vwc_gs)
+  genotype_samples_s[[j]] <- store_vwc_gs
 }
 
 as_tibble(genotype_stores) -> genotype_store_dfs
@@ -257,21 +263,41 @@ slope_survival %>%
   scale_y_continuous(labels = label_number(accuracy = 0.01), limits = c(-20,-4))-> b_vwc_s
 
 ## Fitness subplot ####
-vwc_g_preds %>%
-  distinct() %>% 
-  arrange(genotype, vwc_avg) -> vwc_g_preds
+# Ok these should be the same and will line up
+ln_fitness_genotypes <- list()
 
-vwc_g_pred %>%
-  distinct() %>% 
-  arrange(genotype, vwc_avg) -> vwc_g_pred
+for (i in 1:length(unique(genotype_ids_f))){
+  ln_fitness_genotypes[[i]] <- log(exp(genotype_samples_f[[i]])*plogis(genotype_samples_s[[i]]))
+}
 
-vwc_g_preds %>%
-  cbind(vwc_fecun = vwc_g_pred$vwc_avg,
-        seed_count = exp(vwc_g_pred$ln_seed_count)) %>% 
-  mutate(fitness = survival * seed_count) -> vwc_fitness
+result <- as.data.frame(sapply(ln_fitness_genotypes, function(df) rowMeans(df)))
+
+names(result) <- paste("g", 1:96, sep = "_")
+result %>% 
+  mutate(vwc = seq_vwc) %>% 
+  gather(key = genotype, value = ln_fitness, g_1:g_96) %>% 
+  mutate(genotype = as.factor(parse_number(genotype))) -> fitness_preds
+
+# Get genotype numeric codes that were used in fitting the model and line them
+# back up with true codes
+tibble(genotype = factor(genotype_ids),
+       genotype_id = cg_model$genotype) %>% 
+  distinct() %>% 
+  merge(fitness_preds) %>% 
+  dplyr::select(genotype = genotype_id, vwc, ln_fitness) ->fitness_preds
+
+
+# Get in PC1 values by genotype
+cg_model %>% 
+  dplyr::select(genotype, PC1) %>% 
+  distinct() %>% 
+  merge(fitness_preds) -> fitness_preds
+
+# Rename object
+vwc_fitness <- fitness_preds
 
 vwc_fitness %>% 
-  ggplot(aes(x = vwc_avg, y = log(fitness), group = genotype, color = PC1)) +
+  ggplot(aes(x = vwc, y = ln_fitness, group = genotype, color = PC1)) +
   geom_line(linewidth = 0.5) +
   theme_classic(base_size = 16) +
   #theme(legend.position = "none") +
@@ -280,17 +306,17 @@ vwc_fitness %>%
   scale_color_distiller(palette = "RdYlBu", direction = 1) -> vwc_fitness_rxn
 
 vwc_fitness %>% 
-  filter(vwc_avg == min(vwc_fitness$vwc_avg) | vwc_avg == max(vwc_fitness$vwc_avg)) %>% 
+  filter(vwc == min(vwc_fitness$vwc) | vwc == max(vwc_fitness$vwc)) %>% 
   group_by(genotype) %>% 
-  slice_min(vwc_avg) -> low_vwc_fecun
+  slice_min(vwc) -> low_vwc_fecun
 
 vwc_fitness %>% 
-  filter(vwc_avg == min(vwc_fitness$vwc_avg) | vwc_avg == max(vwc_fitness$vwc_avg)) %>% 
+  filter(vwc == min(vwc_fitness$vwc) | vwc == max(vwc_fitness$vwc)) %>% 
   group_by(genotype) %>% 
-  slice_max(vwc_avg) %>% 
-  cbind(fitness2 = low_vwc_fecun$fitness) %>% 
-  mutate(diff_fit = log(fitness) - log(fitness2)) %>% 
-  mutate(slope = diff_fit / (max(vwc_fitness$vwc_avg) - min(vwc_fitness$vwc_avg))) -> slope_fitness
+  slice_max(vwc) %>% 
+  cbind(fitness2 = low_vwc_fecun$ln_fitness) %>% 
+  mutate(diff_fit = ln_fitness - fitness2) %>% 
+  mutate(slope = diff_fit / (max(vwc_fitness$vwc) - min(vwc_fitness$vwc))) -> slope_fitness
 
 summary(lm(slope ~ PC1, data = slope_fitness))
 confint(lm(slope ~ PC1, data = slope_fitness))
@@ -315,7 +341,7 @@ slope_fitness %>%
     bquote(italic(beta) == .(format(round(slope, 3), nsmall = 3)) ~ 
              .(paste("[", round(conf_int[1], 3), ",", format(round(conf_int[2], 3), nsmall = 3), "]", sep = "")))
   }, hjust = 1.1, vjust = 1.1, size = beta_size, color = "black") + 
-  scale_y_continuous(labels = label_number(accuracy = 0.01), limits = c(-7,8)) -> vwc_fitness_b
+  scale_y_continuous(labels = label_number(accuracy = 0.01), limits = c(-3,8)) -> vwc_fitness_b
 
 
 ## Bring plots together ####

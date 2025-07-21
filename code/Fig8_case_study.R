@@ -3,6 +3,13 @@
 # [Summerland, BC])
 
 ## Preliminaries ####
+library(tidyverse)
+library(cmdstanr)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(sf)
+library(patchwork)
+
 # Read in fecundity model output
 fit <- as_cmdstan_fit(files = c("outputs/demo_model_fecun-202506091642-1-6d200d.csv",
                                 "outputs/demo_model_fecun-202506091642-2-6d200d.csv",
@@ -14,6 +21,13 @@ fit_s <- as_cmdstan_fit(files = c("outputs/demo_model_surv_noncenter-20250609173
 
 # Read in data
 cg_model <- read_csv("data/cg_model_data.csv")
+
+# Make data set of just plants that survived and reproduced
+cg_model$survived <- ifelse(cg_model$seed_count > 0, 1, 0)
+
+# Make subset of data that survived
+cg_model %>% 
+  filter(survived == 1) -> cg_model_fecun
 
 ## Extract covariates and model parameters ####
 cg_model %>% 
@@ -220,11 +234,51 @@ tibble(pred = c(lnfit_gen91_low, lnfit_gen5_low, lnfit_gen88_low,
   labs(x = "current environment",
        y = "predicted ln(fitness)",
        color = "") +
-  theme(legend.position = "top") +
-  scale_color_manual(values = c("#fc8d62", "#66c2a5", "#8da0cb")) -> case_1
+  theme(legend.position = "none") +
+  scale_color_manual(values = c("#DC267F", "#4B5099", "#785EF0")) -> case_1
 
-png("figs/Fig8_casestudy.png", height = 5.4, width = 5.8, res = 300, units = "in")
-case_1
+# Sample GPS coordinates in Wyoming and Idaho
+gps_data <- data.frame(
+  site = c("Joshua Tree, CA", "Summerland, BC", "Vernal, UT"),
+  latitude = c(34.06, 49.62, 40.48),
+  longitude = c(-116.22, -119.8, -109.44)
+)
+
+# Get map data for Canada and the US with provinces/states
+canada <- ne_states(country = "Canada", returnclass = "sf")
+usa <- ne_states(country = "United States of America", returnclass = "sf")
+
+# Combine the US states and BC for plotting
+map_data_combined <- rbind(usa, canada)
+
+ggplot() +
+  geom_sf(data = map_data_combined, fill = "lightgray", color = "white",
+          linewidth = 0.8) +
+  coord_sf(xlim = c(-125, -107.5), ylim = c(32, 50.5), expand = FALSE) +
+  geom_point(data = gps_data, aes(x = longitude, y = latitude, color = site), size = 6,
+             shape = 16, stroke = 2) +
+  theme_minimal(base_size = 16) +
+  labs(x = "longitude", y = "latitude") +
+  theme(legend.position = "none") +
+  scale_color_manual(values = c("#DC267F", "#4B5099", "#785EF0")) +
+  annotate(geom = "text", x = -113.22, y = 36.5, label = "Joshua Tree, CA",
+           color = "#DC267F", size = 7) +
+  annotate(geom = "text", x = -113.22, y = 35.6, label = "(1233 m)",
+           color = "#DC267F", size = 6) +
+  annotate(geom = "segment", x = -116.22, y = 34.06, xend = -115.9, yend = 36, color = "#DC267F") +
+  annotate(geom = "text", x = -114, y = 41.3, label = "Vernal, UT",
+           color = "#785EF0", size = 7) +
+  annotate(geom = "text", x = -114, y = 40.4, label = "(1624 m)",
+           color = "#785EF0", size = 6) +
+  annotate(geom = "segment", x = -109.44, y = 40.48, xend = -111.5, yend = 40.7, color = "#785EF0") +
+  annotate(geom = "text", x = -115.8, y = 47.62, label = "Summerland, BC",
+           color = "#4B5099", size = 7) +
+  annotate(geom = "text", x = -115.8, y = 46.72, label = "(920 m)",
+           color = "#4B5099", size = 6) +
+  annotate(geom = "segment", x = -119.8, y = 49.62, xend = -117, yend = 47.9, color = "#4B5099") -> map
+
+png("figs/Fig8_casestudy.png", height = 5.82, width = 9.64, res = 300, units = "in")
+map + case_1 + plot_annotation(tag_levels = "a")
 dev.off()
 
 # Get effect size for Joshua Tree (calculate median instead of mean bc very skewed)

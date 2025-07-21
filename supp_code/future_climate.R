@@ -114,8 +114,10 @@ tibble(site_code = pca_site_codes$site_code,
   mutate(climate_diff = PC1_source - PC1_future) -> pred_matrix
 # Ok so this is the same value for each one
 # 1.109024
+# Get annual temperature for each site-year combo in the garden
+pca_df <- read_rds("outputs/pca_df.rds")
 
-df_bioclim_all %>%
+pca_df %>%
   filter(site_code %in% c("BA_2022", "WI_2022", "SS_2022", "CH_2022",
                           "WI_2023", "SS_2023", "CH_2023")) %>%
   dplyr::select(site_code, bioclim_1) %>%
@@ -130,7 +132,9 @@ cg_model %>%
   merge(annual_temp) -> anntemp_soiltemp
 
 mod_temp_fecun <- lm(soil_temp_fecun ~ bioclim_1, data = anntemp_soiltemp)
+summary(mod_temp_fecun)# 0.8239
 mod_temp_surv <- lm(soil_temp_surv ~ bioclim_1, data = anntemp_soiltemp)
+summary(mod_temp_surv) # 0.8148
 
 # Get predicted soil temp for each source site based on 30-year climate norm
 df_bioclim_all %>%

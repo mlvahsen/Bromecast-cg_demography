@@ -139,9 +139,9 @@ fit <- as_cmdstan_fit(files = c("outputs/demo_model_fecun-202506031125-1-391f4a.
                                 "outputs/demo_model_fecun-202506031125-2-391f4a.csv",
                                 "outputs/demo_model_fecun-202506031125-3-391f4a.csv"))
 
-fit_noslopes <- as_cmdstan_fit(files = c("outputs/demo_model_fecun_noslopes-202506041129-1-44ac8c.csv",
-                                         "outputs/demo_model_fecun_noslopes-202506041129-2-44ac8c.csv",
-                                         "outputs/demo_model_fecun_noslopes-202506041129-3-44ac8c.csv"))
+fit_noslopes <- as_cmdstan_fit(files = c("outputs/demo_model_fecun_noslopes-202506120832-1-5e7c7c.csv",
+                                         "outputs/demo_model_fecun_noslopes-202506120832-2-5e7c7c.csv",
+                                         "outputs/demo_model_fecun_noslopes-202506120832-3-5e7c7c.csv"))
 
 # Compute the LOOs for both models to compare
 full_model <- fit$loo(variables = "log_likelihood_values")

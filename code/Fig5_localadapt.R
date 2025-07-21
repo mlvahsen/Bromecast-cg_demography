@@ -61,8 +61,8 @@ tibble(lower = sum_stat_climdists[1,],
   theme_classic(base_size = 16) +
   labs(y = "P(survival)",
        x = "climate mismatch") +
-  geom_vline(aes(xintercept = 0), color = "gray27", linewidth = 1, linetype = "dashed") +
-  geom_vline(aes(xintercept = x_peak_s_sc), color = "brown1", linewidth = 1, linetype = "dashed") -> climdist_plot_s
+  geom_vline(aes(xintercept = 0), color = "black", linewidth = 1, linetype = "dashed") +
+  geom_vline(aes(xintercept = x_peak_s_sc), color = "brown1", linewidth = 1) -> climdist_plot_s
 
 ## Subplot for fecundity ####
 # Make subset of data that survived
@@ -102,26 +102,36 @@ tibble(lower = sum_stat_climdist[1,],
        ln_seed_count = sum_stat_climdist[2,],
        clim_dist = seq_climdist) %>% 
   ggplot(aes(x = clim_dist, y = ln_seed_count)) +
-  geom_point(data = cg_model_fecun %>% filter(seed_count > 0), alpha = 0.2, size = 0.5) +
+  geom_point(data = cg_model_fecun %>% filter(seed_count > 0), alpha = 0.1, size = 0.5) +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.8, fill = "gray47") +
   geom_line(linewidth = 1, color = "black") +
   theme_classic(base_size = 16) +
   labs(y = "ln(seed count)",
        x = "climate mismatch") +
   ylim(0,10)  +
-  geom_vline(aes(xintercept = 0), color = "gray27", linewidth = 1, linetype = "dashed") +
-  geom_vline(aes(xintercept = x_peak_sc), color = "dodgerblue", linewidth = 1, linetype = "dashed") -> climdist_plot
+  geom_vline(aes(xintercept = x_peak_sc), color = "dodgerblue", linewidth = 1)+
+  geom_vline(aes(xintercept = 0), color = "black", linewidth = 1, linetype = "dashed") -> climdist_plot
 
 ## Fitness subplot ####
-fitness <- log(exp(sum_stat_climdist) * sum_stat_climdists)
+fitness_draws <- exp(store_climdist) * plogis(store_climdists)
+
+fitness <- apply(log(fitness_draws), 1, quantile, c(0.025, 0.5, 0.975))
 
 text_high <- grid::textGrob("current environment\nhotter & drier\nthan source environment",
-                            gp=gpar(fontsize=11, fontface="bold", lineheight = 0.8, col = "brown1"))
+                            gp=grid::gpar(fontsize=11, fontface="bold", lineheight = 0.8, col = "brown1"))
 text_low <- grid::textGrob("current environment\ncooler & wetter\nthan source environment",
-                           gp=gpar(fontsize=11, fontface="bold", lineheight = 0.8, col = "dodgerblue"))
+                           gp=grid::gpar(fontsize=11, fontface="bold", lineheight = 0.8, col = "dodgerblue"))
 
 # Find x where fitness is maximized
-x_max_fit <- seq_climdist[which(fitness[2,] == max(fitness[2,]))]
+## Calculate location of maximum and its CI ####
+pred_fit <- exp(store_climdist) * plogis(store_climdists)
+x_max_fit <- NULL
+
+for (i in 1:ncol(pred_fit)){
+  x_max_fit[i] <- seq_climdists[which(pred_fit[,i] == max(pred_fit[,i]))]
+}
+
+mu_max_fit <- mean(x_max_fit)
 
 tibble(lower = fitness[1,],
        upper = fitness[3,],
@@ -133,8 +143,8 @@ tibble(lower = fitness[1,],
   theme_classic(base_size = 16) +
   labs(y = "ln(fitness)",
        x = "climate mismatch") +
-  geom_vline(aes(xintercept = 0), color = "gray27", linewidth = 1, linetype = "dashed") +
-  geom_vline(aes(xintercept = x_max_fit), color = "brown1", linewidth = 1, linetype = "dashed") +
+  geom_vline(aes(xintercept = 0), color = "black", linewidth = 1, linetype = "dashed") +
+  geom_vline(aes(xintercept = mu_max_fit), color = "brown1", linewidth = 1) +
   annotation_custom(text_high,xmin=6,xmax=6,ymin=-2.5,ymax=3) + 
   annotation_custom(text_low,xmin=-8,xmax=-8,ymin=-2.5,ymax=3)+
   coord_cartesian(ylim=c(1,5), clip="off") +
@@ -166,3 +176,12 @@ exp(min(fitness[3,])) # 40.82151
 exp(max(fitness[2,])) # 42.0003
 exp(max(fitness[1,])) # 15.5958
 exp(max(fitness[3,])) # 109.9494
+
+# Do x_max calculations for survival and fecundity models too
+x_max_f <- -draws$`beta[4]`/(2*draws$`beta[5]`)
+mean(x_max_f) # -0.08223475
+quantile(x_max_f, c(0.025, 0.975)) # -0.4204943  0.2621730 
+
+x_max_s <- -draws_s$`beta[4]`/(2*draws_s$`beta[5]`)
+mean(x_max_s) # 0.5797457
+quantile(x_max_s, c(0.025, 0.975)) # 0.06151521 1.29968450

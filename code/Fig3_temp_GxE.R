@@ -30,7 +30,7 @@ cg_model_fecun$clim_dist_sc <- scale(cg_model_fecun$clim_dist)[,1]
 # Get quadratic of climate difference
 cg_model_fecun$clim_dist_sc2 <- (cg_model_fecun$clim_dist_sc)^2
 cg_model_fecun$sqrt_new_neighbors_sc <- scale(sqrt(cg_model_fecun$new_neighbors))[,1]
-cg_model_fecun$temp_fecun_sc <- scale(cg_model_fecun$temp_fecun)[,1]
+cg_model_fecun$temp_sc <- scale(cg_model_fecun$temp)[,1]
 cg_model_fecun$vwc_avg_sc <- scale(sqrt(cg_model_fecun$vwc_avg))[,1]
 cg_model_fecun$temp_surv_sc <- scale(sqrt(cg_model_fecun$temp_surv))[,1]
 cg_model_fecun$genotype <- as.factor(cg_model_fecun$genotype)
@@ -41,12 +41,12 @@ cg_model_fecun$site_year_gravel <- as.factor(paste(cg_model_fecun$site,
 
 ## Fecundity subplots ####
 # Make vector of temperature scaled
-seq_sc_temp <- seq(min(cg_model_fecun$temp_fecun_sc),
-                   max(cg_model_fecun$temp_fecun_sc),
+seq_sc_temp <- seq(min(cg_model_fecun$temp_sc),
+                   max(cg_model_fecun$temp_sc),
                    length.out = 10)
 # Make same length vector of temperature unscaled
-seq_temp <- seq(min(cg_model_fecun$temp_fecun),
-                max(cg_model_fecun$temp_fecun),
+seq_temp <- seq(min(cg_model_fecun$temp),
+                max(cg_model_fecun$temp),
                 length.out = 10)
 
 # Extract draws from model fit -- fecundity
@@ -65,6 +65,8 @@ slopes <- draws %>% as_tibble() %>% dplyr::select(starts_with("genotype_slopes")
 # Initialize the output matrix
 genotype_store<- matrix(NA, nrow = length(seq_temp), ncol = ncol(intercepts))
 
+genotype_samples_f <- list()
+
 # Vectorized computation of genotype stores
 for (j in 1:ncol(intercepts)) {
   # Extract the relevant intercept and slopes for genotype j
@@ -82,12 +84,13 @@ for (j in 1:ncol(intercepts)) {
   
   # Apply colMeans to reduce the result
   genotype_store[, j] <- rowMeans(store_temp_gs)
+  genotype_samples_f[[j]] <- store_temp_gs
 }
 
 as_tibble(genotype_store) -> genotype_store_df
 names(genotype_store_df) <- paste("g", 1:ncol(intercepts), sep = "_")
 genotype_store_df %>% 
-  mutate(temp_fecun = seq_temp) %>% 
+  mutate(temp = seq_temp) %>% 
   gather(key = genotype, value = ln_seed_count, g_1:g_96) %>% 
   mutate(genotype = as.factor(parse_number(genotype))) -> temp_g_pred
 
@@ -99,7 +102,7 @@ tibble(genotype = factor(genotype_id),
        genotype_id = cg_model_fecun$genotype) %>% 
   distinct() %>% 
   merge(temp_g_pred) %>% 
-  dplyr::select(genotype = genotype_id, temp_fecun, ln_seed_count) ->temp_g_pred
+  dplyr::select(genotype = genotype_id, temp, ln_seed_count) ->temp_g_pred
 
 # Collect PC1 values for each genotype
 cg_model %>% 
@@ -108,7 +111,7 @@ cg_model %>%
   merge(temp_g_pred) -> temp_g_pred
 
 temp_g_pred %>% 
-  ggplot(aes(x = temp_fecun, y = ln_seed_count, group = genotype, color = PC1)) +
+  ggplot(aes(x = temp, y = ln_seed_count, group = genotype, color = PC1)) +
   geom_line(linewidth = 0.5) +
   #geom_point(data = cg_model_fecun) +
   theme_classic(base_size = 16) +
@@ -119,9 +122,9 @@ temp_g_pred %>%
 
 temp_g_pred %>% 
   group_by(genotype, PC1) %>% 
-  reframe(min = ln_seed_count[which(temp_fecun == min(temp_fecun))],
-          max = ln_seed_count[which(temp_fecun == max(temp_fecun))],
-          slope = (max - min) / (max(temp_fecun) - min(temp_fecun))) -> slope_fecun
+  reframe(min = ln_seed_count[which(temp == min(temp))],
+          max = ln_seed_count[which(temp == max(temp))],
+          slope = (max - min) / (max(temp) - min(temp))) -> slope_fecun
 
 summary(lm(slope ~ PC1, data = slope_fecun))
 confint(lm(slope ~ PC1, data = slope_fecun))
@@ -167,7 +170,6 @@ seq_temps <- seq(min(cg_model$temp_surv),
 
 alpha <- draws_s$alpha
 beta_2 <- draws_s$`beta[2]`
-seq_sc_temps <- seq_sc_temp
 
 # Precompute the intercepts and slopes for all genotypes (outside of loops)
 intercepts <- draws_s %>% as_tibble() %>% dplyr::select(starts_with("genotype_intercepts")) %>% as.matrix()
@@ -177,6 +179,8 @@ slopes <- draws_s %>% as_tibble() %>% dplyr::select(starts_with("genotype_slopes
 
 # Initialize the output matrix
 genotype_stores <- matrix(NA, nrow = length(seq_sc_temps), ncol = ncol(intercepts))
+
+genotype_samples_s <- list()
 
 # Vectorized computation of genotype stores
 for (j in 1:ncol(intercepts)) {
@@ -195,6 +199,7 @@ for (j in 1:ncol(intercepts)) {
   
   # Apply colMeans to reduce the result
   genotype_stores[, j] <- rowMeans(store_temp_gs)
+  genotype_samples_s[[j]] <- store_temp_gs
 }
 
 as_tibble(genotype_stores) -> genotype_store_dfs
@@ -263,21 +268,68 @@ slope_surv %>%
   scale_y_continuous(limits = c(0.14, 0.30))-> b_temp_s
 
 ## Fitness subplots ####
-temp_g_preds %>%
-  distinct() %>% 
-  arrange(genotype, temp_surv) -> temp_g_preds
 
-temp_g_pred %>%
-  distinct() %>% 
-  arrange(genotype, temp_fecun) -> temp_g_pred
+# Need to line up genotype indexing
+genotype_ids_f <- as.numeric(as.factor(cg_model_fecun$genotype))
+genotype_ids_s <- as.numeric(as.factor(cg_model$genotype))
 
-temp_g_preds %>%
-  cbind(temp_fecun = temp_g_pred$temp_fecun,
-        seed_count = exp(temp_g_pred$ln_seed_count)) %>% 
-  mutate(fitness = survival * seed_count) -> temp_fitness
+tibble(genotype = factor(genotype_ids_f),
+       genotype_id = cg_model_fecun$genotype) %>% 
+  distinct() %>% 
+  arrange(genotype) %>% 
+  print(n = Inf)
+
+tibble(genotype = factor(genotype_ids_s),
+       genotype_id = cg_model$genotype) %>% 
+  distinct() %>% 
+  arrange(genotype) %>% 
+  print(n = Inf)
+
+# Ok these should be the same and will line up
+ln_fitness_genotypes <- list()
+
+for (i in 1:length(unique(genotype_ids_f))){
+  ln_fitness_genotypes[[i]] <- log(exp(genotype_samples_f[[i]])*plogis(genotype_samples_s[[i]]))
+}
+
+result <- as.data.frame(sapply(ln_fitness_genotypes, function(df) rowMeans(df)))
+
+names(result) <- paste("g", 1:96, sep = "_")
+result %>% 
+  mutate(temp = seq_temp) %>% 
+  gather(key = genotype, value = ln_fitness, g_1:g_96) %>% 
+  mutate(genotype = as.factor(parse_number(genotype))) -> fitness_preds
+
+# Get genotype numeric codes that were used in fitting the model and line them
+# back up with true codes
+tibble(genotype = factor(genotype_ids),
+       genotype_id = cg_model$genotype) %>% 
+  distinct() %>% 
+  merge(fitness_preds) %>% 
+  dplyr::select(genotype = genotype_id, temp, ln_fitness) ->fitness_preds
+
+
+# Get in PC1 values by genotype
+cg_model %>% 
+  dplyr::select(genotype, PC1) %>% 
+  distinct() %>% 
+  merge(fitness_preds) -> fitness_preds
+
+# temp_g_preds %>%
+#   distinct() %>% 
+#   arrange(genotype, temp_surv) -> temp_g_preds
+# 
+# temp_g_pred %>%
+#   distinct() %>% 
+#   arrange(genotype, temp) -> temp_g_pred
+# 
+# temp_g_preds %>%
+#   cbind(temp = temp_g_pred$temp,
+#         seed_count = exp(temp_g_pred$ln_seed_count)) %>% 
+#   mutate(fitness = survival * seed_count) -> temp_fitness
   
-temp_fitness %>% 
-  ggplot(aes(x = temp_fecun, y = log(fitness), group = genotype, color = PC1)) +
+fitness_preds %>% 
+  ggplot(aes(x = temp, y = ln_fitness, group = genotype, color = PC1)) +
   geom_line(linewidth = 0.5) +
   theme_classic(base_size = 16) +
   #theme(legend.position = "none") +
@@ -285,18 +337,20 @@ temp_fitness %>%
        x = "soil temperature (°C)") +
   scale_color_distiller(palette = "RdYlBu", direction = 1) -> temp_fitness_rxn
 
-temp_fitness %>% 
-  filter(temp_fecun == min(temp_fitness$temp_fecun) | temp_fecun == max(temp_fitness$temp_fecun)) %>% 
-  group_by(genotype) %>% 
-  slice_min(temp_fecun) -> low_temp_fecun
+temp_fitness <- fitness_preds
 
 temp_fitness %>% 
-  filter(temp_fecun == min(temp_fitness$temp_fecun) | temp_fecun == max(temp_fitness$temp_fecun)) %>% 
+  filter(temp == min(temp_fitness$temp) | temp == max(temp_fitness$temp)) %>% 
   group_by(genotype) %>% 
-  slice_max(temp_fecun) %>% 
-  cbind(fitness2 = low_temp_fecun$fitness) %>% 
-  mutate(diff_fit = log(fitness) - log(fitness2)) %>% 
-  mutate(slope = diff_fit / (max(temp_fitness$temp_fecun) - min(temp_fitness$temp_fecun))) -> slope_fitness
+  slice_min(temp) -> low_temp
+
+temp_fitness %>% 
+  filter(temp == min(temp_fitness$temp) | temp == max(temp_fitness$temp)) %>% 
+  group_by(genotype) %>% 
+  slice_max(temp) %>% 
+  cbind(fitness2 = low_temp$ln_fitness) %>% 
+  mutate(diff_fit = ln_fitness - fitness2) %>% 
+  mutate(slope = diff_fit / (max(temp_fitness$temp) - min(temp_fitness$temp))) -> slope_fitness
 
 summary(lm(slope ~ PC1, data = slope_fitness))
 confint(lm(slope ~ PC1, data = slope_fitness))

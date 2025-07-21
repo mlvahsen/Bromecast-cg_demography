@@ -3,6 +3,8 @@
 library(rjags);library(tidyverse);library(cmdstanr);library(posterior);
 library(bayesplot); library(janitor); library(patchwork); library(lubridate); 
 library(loo)
+
+
 # Source data for modeling 
 #source("supp_code/data_prep.R")
 cg_model <- read_csv("data/cg_model_data.csv")# Updated 3 April 2025
@@ -27,14 +29,16 @@ cg_model_fecun %>%
 
 plot_data %>% 
   ggplot(aes(x = temp_fecun, y = vwc_avg)) +
-  geom_point(size = 5, aes(color = site, fill = gravel, shape = year), stroke = 2, alpha = 0.8) +
+  geom_point(size = 6, aes(color = site, fill = gravel, shape = year), stroke = 3) +
   scale_fill_manual(values = c("black", "white")) +
-  scale_color_manual(values = c("#44AA99", "#AA4499", "#332288", "#6699CC")) +
+  scale_color_manual(values = c("#0072B2", "#E69F00", "#009E73", "#CC79A7")) +
   scale_shape_manual(values = c(21,22)) +
-  guides(fill = guide_legend(override.aes = list(shape = 21))) +
-  theme_bw(base_size = 16) +
+  theme_classic(base_size = 16) +
   labs(y = "average daily soil moisture\n(volumetric water content)",
-       x = "average daily soil temperature (°C)") -> xy_plot
+       x = "average daily soil temperature (°C)") +
+  guides(colour = guide_legend(override.aes = list(size=5, stroke = 2)),
+         fill = guide_legend(override.aes = list(size=5, stroke = 2, shape = 21)),
+         shape = guide_legend(override.aes = list(size=5, stroke = 2)))-> xy_plot
 
 # plot_data %>% 
 #   ggplot(aes(x = temp_fecun, y = 0)) +
@@ -96,17 +100,19 @@ states_map <- map_data("state")
 ggplot() +
   geom_polygon(data = states_map, aes(x = long, y = lat, group = group),
                fill = "gray90", color = "white") +
-  geom_point(data = gps_data, aes(x = lon, y = lat, color = site, fill = site), size = 6,
-             shape = 21, stroke = 2) +
+  geom_point(data = gps_data, aes(x = lon, y = lat, color = site), size = 6,
+             shape = 16, stroke = 2) +
   ggrepel::geom_text_repel(data = gps_data, aes(x = lon, y = lat, label = site, color = site),
-                  size = 5, box.padding = 1.5) +  # Increased point_padding
-  coord_quickmap(xlim = c(-117, -104), ylim = c(41, 48)) +
+                  size = 6, box.padding = 1.5) +  # Increased point_padding
+  coord_quickmap(xlim = c(-117, -104), ylim = c(41, 46)) +
   theme_minimal(base_size = 16) +
   labs(x = "longitude", y = "latitude") +
   theme(legend.position = "none") +
-  scale_color_manual(values = c("#44AA99", "#AA4499", "#332288", "#6699CC")) +
-  scale_fill_manual(values = c("#66ffe6", "#ff66e5", "#4c05ff", "#9ae6ff")) +
-  annotate(geom = "text", x = -114, y = 48, label = "Common gardens", size = 6, fontface = "bold") -> map
+  scale_color_manual(values = c("#0072B2", "#E69F00", "#009E73", "#CC79A7")) +
+  annotate(geom = "text", x = -114.4, y = 41.7, label = "(1573 m)", color = "#0072B2", size = 5)+ 
+  annotate(geom = "text", x = -109, y = 44.8, label = "(1647 m)", color = "#009E73", size = 5)+ 
+  annotate(geom = "text", x = -107.7, y = 41.6, label = "(1915 m)", color = "#E69F00", size = 5)+ 
+  annotate(geom = "text", x = -114.6, y = 43.8, label = "(823 m)", color = "#CC79A7", size = 5)-> map
 
 design <- "BBBAAA
            BBBAAA
@@ -114,6 +120,7 @@ design <- "BBBAAA
            CCCAAA
            CCCAAA"
 
-png("figs/Fig1_setup.png", height = 7.19, width = 13.89, res = 300, units = "in")
-xy_plot + map + plot_spacer() + plot_layout(design = design) 
+fig2 <- xy_plot + map + plot_spacer() + plot_layout(design = design)
+ggsave(filename = "figs/Fig2_setup.svg", plot = fig2, width = 11.88, height = 5.66)
+
 dev.off()

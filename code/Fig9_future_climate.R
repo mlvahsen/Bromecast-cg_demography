@@ -8,69 +8,96 @@ library(daymetr); library(lubridate); library(scales)
 ## Make predictions with model and prediction model matrices ####
 
 # Read in model output
-fit <- as_cmdstan_fit(files = c("outputs/demo_model_fecun-202506031125-1-391f4a.csv",
-                                "outputs/demo_model_fecun-202506031125-2-391f4a.csv",
-                                "outputs/demo_model_fecun-202506031125-3-391f4a.csv"))
+fit <- as_cmdstan_fit(files = c("outputs/demo_model_fecun-202506091642-1-6d200d.csv",
+                                "outputs/demo_model_fecun-202506091642-2-6d200d.csv",
+                                "outputs/demo_model_fecun-202506091642-3-6d200d.csv"))
 
-fit_s <- as_cmdstan_fit(files = c("outputs/demo_model_surv_noncenter-202506031158-1-25d6a2.csv",
-                                  "outputs/demo_model_surv_noncenter-202506031158-2-25d6a2.csv",
-                                  "outputs/demo_model_surv_noncenter-202506031158-3-25d6a2.csv"))
+fit_s <- as_cmdstan_fit(files = c("outputs/demo_model_surv_noncenter-202506091738-1-51da52.csv",
+                                  "outputs/demo_model_surv_noncenter-202506091738-2-51da52.csv",
+                                  "outputs/demo_model_surv_noncenter-202506091738-3-51da52.csv"))
 
-# Collect intercept and temperature regression coefficient
+# Set seed
+set.seed(4685)
+
+# Collect intercept and temperature regression coefficient from fecundity model
 draws <- fit$draws(format = "df")
 # Global intercept
-alpha <- mean(draws$alpha)
+alpha <- draws$alpha
 # Regression coefficient for temperature
-beta_2 <- mean(draws$`beta[2]`)
+beta_2 <- draws$`beta[2]`
 # Regression coefficient for climate mismatch
-beta_4 <- mean(draws$`beta[4]`)
+beta_4 <- draws$`beta[4]`
 # Regression coefficient for climate mismatch ^2
-beta_5 <- mean(draws$`beta[5]`)
+beta_5 <- draws$`beta[5]`
+# Dispersion parameter for NB
+phi <- draws$phi
 # Genotype intercepts
-intercepts <- colMeans(draws %>% as_tibble() %>% dplyr::select(starts_with("genotype_intercepts")) %>% as.matrix())
+intercepts <- draws %>% as_tibble() %>% dplyr::select(starts_with("genotype_intercepts")) %>% as.matrix()
 # Genotype x temp slopes
-slopes <- colMeans(draws %>% as_tibble() %>% dplyr::select(starts_with("genotype_slopes") & ends_with(",2]")) %>% as.matrix())
+slopes <- draws %>% as_tibble() %>% dplyr::select(starts_with("genotype_slopes") & ends_with(",2]")) %>% as.matrix()
 
 # Read in matrix of covariates for now and the future
 pred_matrix_source <- read_csv("outputs/predict_source_mm.csv")
 pred_matrix_future <- read_csv("outputs/predict_future_mm.csv")
 
-pred_now <- NULL
-pred_future <- NULL
+# Set up empty matrices to hold output
+pred_now <- matrix(NA, nrow = nrow(intercepts), ncol = ncol(intercepts))
+pred_future <- matrix(NA, nrow = nrow(intercepts), ncol = ncol(intercepts))
+post_pred_now <- matrix(NA, nrow = nrow(intercepts), ncol = ncol(intercepts))
+post_pred_future <- matrix(NA, nrow = nrow(intercepts), ncol = ncol(intercepts))
 
-for (i in 1:nrow(pred_matrix_future)){
-  pred_now[i] <- alpha + intercepts[i] + (beta_2 + slopes[i]) * pred_matrix_source$temp_fecun_sc[i]
-  pred_future[i] <- alpha + intercepts[i] + (beta_2 + slopes[i]) * pred_matrix_future$temp_fecun_sc[i] +
-    beta_4 * pred_matrix_future$clim_dist_sc_f[i] + beta_5 * pred_matrix_future$clim_dist_sc2_f[i]
+# Loop through iterations
+for (i in 1:nrow(pred_now)){
+  # Loop through genotypes
+  for (j in 1:ncol(pred_now)){
+    pred_now[i,j] <- alpha[i] + intercepts[i,j] + (beta_2[i] + slopes[i,j]) * pred_matrix_source$temp_fecun_sc[j]
+    
+    post_pred_now[i,j] <- rnbinom(1, size = phi[i], mu = exp(pred_now[i,j]))
+    
+    pred_future[i,j] <- alpha[i] + intercepts[i,j] + (beta_2[i] + slopes[i,j]) * pred_matrix_future$temp_fecun_sc[j] +
+      beta_4[i] * pred_matrix_future$clim_dist_sc_f[j] + beta_5[i] * pred_matrix_future$clim_dist_sc2_f[j]
+    
+    post_pred_future[i,j] <- rnbinom(1, size = phi[i], mu = exp(pred_future[i,j]))
+  }
 }
 
 ## Repeat for survival ####
 # Collect intercept and temperature regression coefficient
 draws_s <- fit_s$draws(format = "df")
 # Global intercept
-alpha_s <- mean(draws_s$alpha)
+alpha_s <- draws_s$alpha
 # Regression coefficient for temperature
-beta_2s <- mean(draws_s$`beta[2]`)
+beta_2s <- draws_s$`beta[2]`
 # Regression coefficient for climate mismatch
-beta_4s <- mean(draws_s$`beta[4]`)
+beta_4s <- draws_s$`beta[4]`
 # Regression coefficient for climate mismatch ^2
-beta_5s <- mean(draws_s$`beta[5]`)
+beta_5s <- draws_s$`beta[5]`
 # Genotype intercepts
-intercepts_s <- colMeans(draws_s %>% as_tibble() %>% dplyr::select(starts_with("genotype_intercepts")) %>% as.matrix())
+intercepts_s <- draws_s %>% as_tibble() %>% dplyr::select(starts_with("genotype_intercepts")) %>% as.matrix()
 # Genotype x temp slopes
-slopes_s <- colMeans(draws_s %>% as_tibble() %>% dplyr::select(starts_with("genotype_slopes") & ends_with(",2]")) %>% as.matrix())
+slopes_s <- draws_s %>% as_tibble() %>% dplyr::select(starts_with("genotype_slopes") & ends_with(",2]")) %>% as.matrix()
 
-pred_now_s <- NULL
-pred_future_s <- NULL
+pred_now_s <- matrix(NA, nrow = nrow(intercepts_s), ncol = ncol(intercepts_s))
+pred_future_s <- matrix(NA, nrow = nrow(intercepts_s), ncol = ncol(intercepts_s))
+post_pred_now_s <- matrix(NA, nrow = nrow(intercepts_s), ncol = ncol(intercepts_s))
+post_pred_future_s <- matrix(NA, nrow = nrow(intercepts_s), ncol = ncol(intercepts_s))
 
-for (i in 1:nrow(pred_matrix_future)){
-  pred_now_s[i] <- alpha_s + intercepts_s[i] + (beta_2s + slopes_s[i]) * pred_matrix_source$temp_surv_sc[i]
-  pred_future_s[i] <- alpha_s + intercepts_s[i] + (beta_2s + slopes_s[i]) * pred_matrix_future$temp_surv_sc[i] +
-    beta_4s * pred_matrix_future$clim_dist_sc_s[i] + beta_5s * pred_matrix_future$clim_dist_sc2_s[i]
+for (i in 1:nrow(pred_now_s)){
+  for (j in 1:ncol(pred_now_s)){
+    pred_now_s[i,j] <- alpha_s[i] + intercepts_s[i,j] + (beta_2s[i] + slopes_s[i,j]) * pred_matrix_source$temp_surv_sc[j]
+    
+    post_pred_now_s[i,j] <- rbinom(1, size = 1, prob = plogis(pred_now_s[i,j]))
+    
+    pred_future_s[i,j] <- alpha_s[i] + intercepts_s[i,j] + (beta_2s[i] + slopes_s[i,j]) * pred_matrix_future$temp_surv_sc[j] +
+      beta_4s[i] * pred_matrix_future$clim_dist_sc_s[j] + beta_5s[i] * pred_matrix_future$clim_dist_sc2_s[j]
+    
+    post_pred_future_s[i,j] <- rbinom(1, size = 1, prob = plogis(pred_future_s[i,j]))
+  }
 }
 
-predict_fitness_now <- exp(pred_now) * plogis(pred_now_s)
-predict_fitness_future <- exp(pred_future) * plogis(pred_future_s)
+# Define prediction without observation noise
+predict_fitness_now <- log((miscTools::colMedians(exp(pred_now) * plogis(pred_now_s)))) 
+predict_fitness_future <- log((miscTools::colMedians(exp(pred_future) * plogis(pred_future_s)))) 
 
 # Determine color based on direction of change
 arrow_colors <- ifelse(predict_fitness_future > predict_fitness_now, "red", "blue")
@@ -79,8 +106,8 @@ arrow_colors <- ifelse(predict_fitness_future > predict_fitness_now, "red", "blu
 plot_data <- data.frame(
   soil_temp_now = pred_matrix_source$soil_temp_fecun,
   soil_temp_future = pred_matrix_source$soil_temp_fecun,
-  fitness_now = log(predict_fitness_now),
-  fitness_future = log(predict_fitness_future)
+  fitness_now = predict_fitness_now,
+  fitness_future = predict_fitness_future
 )
 
 # Compute change and scaled magnitude
@@ -92,7 +119,6 @@ plot_data$outline_color <- ifelse(plot_data$fitness_change > 0, "red", "blue")
 
 # Plot
 ggplot() +
-  # 1. Outline arrows (fixed color per row, NOT mapped via aes)
   geom_segment(data = plot_data,
                aes(x = soil_temp_now, y = fitness_now,
                    xend = soil_temp_future, yend = fitness_future),
@@ -100,7 +126,6 @@ ggplot() +
                arrow = arrow(length = unit(0.18, "cm")),
                linewidth = 2, lineend = "round") +
   
-  # 2. Inner arrows with gradient fill (mapped to fitness_change_scaled)
   geom_segment(data = plot_data,
                aes(x = soil_temp_now, y = fitness_now,
                    xend = soil_temp_future, yend = fitness_future,

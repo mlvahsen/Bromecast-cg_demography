@@ -91,13 +91,13 @@ dens2_ts <- matrix(NA, nrow = 100, ncol = nrow(draws))
 for (i in 1:100){
   dens1_ts[i,] <- draws_s$alpha +
     draws_s$`beta[1]` * -1 +
-    draws_s$`beta[2]` * seq_sc_vwc[i] +
-    draws_s$`beta[6]` * seq_sc_vwc[i] *-1 
+    draws_s$`beta[2]` * seq_sc_temp[i] +
+    draws_s$`beta[6]` * seq_sc_temp[i] *-1 
   
   dens2_ts[i,] <- draws_s$alpha +
     draws_s$`beta[1]` +
-    draws_s$`beta[2]` * seq_sc_vwc[i] +
-    draws_s$`beta[6]` * seq_sc_vwc[i] 
+    draws_s$`beta[2]` * seq_sc_temp[i] +
+    draws_s$`beta[6]` * seq_sc_temp[i] 
 }
 
 plogis(apply(dens1_ts, 1, quantile, c(0.025, 0.5, 0.975))) -> high_dens_pred
@@ -224,15 +224,15 @@ tibble(lower = c(low_dens_pred[1,], high_dens_pred[1,]),
   scale_fill_manual(values = colors) -> fecundity_temp
 
 ## Fitness for soil temperature ####
-fitness_t_hi <- plogis(dens1_ts) * exp(dens1_tf)
-fitness_t_lo <- plogis(dens2_ts) * exp(dens2_tf)
+fitness_t_hi <- log(plogis(dens1_ts) * exp(dens1_tf))
+fitness_t_lo <- log(plogis(dens2_ts) * exp(dens2_tf))
 
 apply(fitness_t_hi, 1, quantile, c(0.025, 0.5, 0.975)) -> high_dens_t_fit
 apply(fitness_t_lo, 1, quantile, c(0.025, 0.5, 0.975)) -> low_dens_t_fit
 
-tibble(lower = c(log(low_dens_t_fit[1,]), log(high_dens_t_fit[1,])),
-       upper = c(log(low_dens_t_fit[3,]), log(high_dens_t_fit[3,])),
-       fitness = c(log(low_dens_t_fit[2,]), log(high_dens_t_fit[2,])),
+tibble(lower = c(low_dens_t_fit[1,], high_dens_t_fit[1,]),
+       upper = c(low_dens_t_fit[3,], high_dens_t_fit[3,]),
+       fitness = c(low_dens_t_fit[2,], high_dens_t_fit[2,]),
        density = rep(c("low density", "high density"), each = 100),
        temp = c(seq_temp, seq_temp)) %>% 
   ggplot(aes(x = temp, y = fitness, color = density, group = density)) +
@@ -247,15 +247,15 @@ tibble(lower = c(log(low_dens_t_fit[1,]), log(high_dens_t_fit[1,])),
   scale_fill_manual(values = colors) -> fitness_temp
 
 ## Fitness for soil moisture ###
-fitness_v_hi <- plogis(dens1_vs) * exp(dens1_vf)
-fitness_v_lo <- plogis(dens2_vs) * exp(dens2_vf)
+fitness_v_hi <- log(plogis(dens1_vs) * exp(dens1_vf))
+fitness_v_lo <- log(plogis(dens2_vs) * exp(dens2_vf))
 
 apply(fitness_v_hi, 1, quantile, c(0.025, 0.5, 0.975)) -> high_dens_v_fit
 apply(fitness_v_lo, 1, quantile, c(0.025, 0.5, 0.975)) -> low_dens_v_fit
 
-tibble(lower = c(log(low_dens_v_fit[1,]), log(high_dens_v_fit[1,])),
-       upper = c(log(low_dens_v_fit[3,]), log(high_dens_v_fit[3,])),
-       fitness = c(log(low_dens_v_fit[2,]), log(high_dens_v_fit[2,])),
+tibble(lower = c(low_dens_v_fit[1,], high_dens_v_fit[1,]),
+       upper = c(low_dens_v_fit[3,], high_dens_v_fit[3,]),
+       fitness = c(low_dens_v_fit[2,], high_dens_v_fit[2,]),
        density = rep(c("low density", "high density"), each = 100),
        vwc = c(seq_vwc, seq_vwc)) %>% 
   ggplot(aes(x = vwc, y = fitness, color = density, group = density)) +
@@ -272,7 +272,7 @@ tibble(lower = c(log(low_dens_v_fit[1,]), log(high_dens_v_fit[1,])),
 
 ## Bring plots together ####
 
-png("figs/Fig7_dens_climate.png", height = 8.5, width = 7.5, res = 300, units = "in")
+png("figs/Fig6_dens_climate.png", height = 8.5, width = 7.5, res = 300, units = "in")
 (survival_temp & theme(plot.tag.position = c(0.02,0.85))) +
 (survival_vwc & theme(plot.tag.position = c(0.02,0.85))) +
 (fecundity_temp & theme(plot.tag.position = c(0.02,1))) +
