@@ -239,8 +239,8 @@ opt2 <- -lin_slope_2 / (2*quad_slope_2)
 tibble(opt = opt1 - opt2) %>% 
   ggplot(aes(x = opt)) +
   geom_density(fill = "gray") +
-  xlab("difference in optimum\n(high density - low density)") +
-  theme_classic(base_size = 16) +
+  xlab("difference in x-value at maximum\n(high density - low density)") +
+  theme_classic(base_size = 15) +
   geom_vline(aes(xintercept = quantile(opt, 0.025)), linetype = "dashed") +
   geom_vline(aes(xintercept = quantile(opt, 0.975)), linetype = "dashed") -> b_fit
 

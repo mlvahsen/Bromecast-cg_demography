@@ -5,8 +5,8 @@ library(bayesplot); library(janitor); library(patchwork); library(lubridate);
 library(loo); library(cmdstanr)
 
 # Source data for modeling 
-#source("supp_code/data_prep.R")
-cg_model <- read_csv("data/cg_model_data.csv")
+source("supp_code/data_prep.R")
+#cg_model <- read_csv("data/cg_model_data.csv")
 
 # Make data set of just plants that survived and reproduced
 cg_model$survived <- ifelse(cg_model$seed_count > 0, 1, 0)
