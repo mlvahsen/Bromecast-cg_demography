@@ -203,7 +203,7 @@ fit_data %>%
 
 
 ## Full plot ####
-png("figs/Fig7_densxlocaladapt.png", height = 9.5, width = 5.5, res = 300, units = "in")
+png("figs/Fig8_densxlocaladapt.png", height = 9.5, width = 5.5, res = 300, units = "in")
 (survival_sub & theme(plot.tag.position = c(0, 0.9))) / (fecundity_sub & theme(plot.tag.position = c(0.0, 1.05))) /
   (fitness_sub & theme(plot.tag.position = c(0.0, 1.05)))+
   plot_annotation(tag_levels = "a") +
@@ -246,6 +246,6 @@ tibble(opt = opt1 - opt2) %>%
 
 quantile(opt1-opt2, c(0.025, 0.975))
 
-png("figs/FigS4_dens_adapt.png", height = 4, width = 7.5, units = "in", res = 300)
+png("figs/FigS5_dens_adapt.png", height = 4, width = 7.5, units = "in", res = 300)
 a_fit + b_fit
 dev.off()

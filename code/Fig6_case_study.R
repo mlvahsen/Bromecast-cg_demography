@@ -277,7 +277,7 @@ ggplot() +
            color = "#4B5099", size = 6) +
   annotate(geom = "segment", x = -119.8, y = 49.62, xend = -117, yend = 47.9, color = "#4B5099") -> map
 
-png("figs/Fig8_casestudy.png", height = 5.82, width = 9.64, res = 300, units = "in")
+png("figs/Fig6_casestudy.png", height = 5.82, width = 9.64, res = 300, units = "in")
 map + case_1 + plot_annotation(tag_levels = "a")
 dev.off()
 

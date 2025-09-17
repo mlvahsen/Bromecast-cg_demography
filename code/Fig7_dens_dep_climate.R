@@ -272,7 +272,7 @@ tibble(lower = c(low_dens_v_fit[1,], high_dens_v_fit[1,]),
 
 ## Bring plots together ####
 
-png("figs/Fig6_dens_climate.png", height = 8.5, width = 7.5, res = 300, units = "in")
+png("figs/Fig7_dens_climate.png", height = 8.5, width = 7.5, res = 300, units = "in")
 (survival_temp & theme(plot.tag.position = c(0.02,0.85))) +
 (survival_vwc & theme(plot.tag.position = c(0.02,0.85))) +
 (fecundity_temp & theme(plot.tag.position = c(0.02,1))) +
