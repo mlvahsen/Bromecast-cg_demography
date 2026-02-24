@@ -5,11 +5,20 @@ library(bayesplot); library(janitor); library(patchwork); library(lubridate);
 library(loo); library(cmdstanr)
 
 # Source data for modeling 
-source("supp_code/data_prep.R")
-#cg_model <- read_csv("data/cg_model_data.csv")
+#source("supp_code/data_prep.R")
+cg_model <- read_csv("data/cg_model_data.csv")
 
 # Make data set of just plants that survived and reproduced
 cg_model$survived <- ifelse(cg_model$seed_count > 0, 1, 0)
+
+# Get range of final densities for each plot
+cg_model %>% 
+  group_by(plot_unique) %>% 
+  summarize(total_plots = sum(survived)/n()) %>% 
+  pull(total_plots) -> total_plot_prop
+
+range(total_plot_prop)
+mean(total_plot_prop)
 
 # Make subset of data that survived
 cg_model %>% 
@@ -83,13 +92,17 @@ fit <- mod$sample(
 
 # Get summary of all parameters
 summary = fit$summary()
+# Assess Gelman-Rubin statistics for all parameters
+#which(summary$rhat>=1.01) # All rhats are <1.01
 
 # Get all posterior draws for parameters
 posterior <- fit$draws(format = "df")
 
 # To save output files
 fit$save_output_files("outputs/")
-  
+
+summary <- fit$summary()
+
 
 ## FECUNDITY MODEL WITHOUT RANDOM SLOPES ####
 
@@ -213,6 +226,9 @@ fit_s <- mod_s$sample(
 # To save output files
 fit_s$save_output_files("outputs/")
 
+# Get Gelman-Rubin diagnostics
+#fit_s_summary <- fit_s$summary()
+#which(fit_s_summary$rhat>=1.01) # All rhats are <1.01
 ## SURVIVAL MODEL WITHOUT RANDOM SLOPES ####
 
 # Make design matrix for fixed effects -- drop clim dist as well

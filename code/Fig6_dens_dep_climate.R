@@ -1,3 +1,8 @@
+# This code creates Figure 6a-f which shows the interactions between soil
+# temperature & moisture and density dependence. The code generates this portion
+# of Figure 6 which is then used in 'Figure6_all.R' to create the full Figure 6
+# plot.
+
 ## Preliminaries ####
 
 # Load libraries
@@ -270,16 +275,11 @@ tibble(lower = c(low_dens_v_fit[1,], high_dens_v_fit[1,]),
   scale_fill_manual(values = colors) -> fitness_vwc
 
 
-## Bring plots together ####
+## Generate Figure 6a-f subplot ####
+saveRDS(survival_temp, "outputs/survival_temp.rds")
+saveRDS(fecundity_temp, "outputs/fecundity_temp.rds")
+saveRDS(fitness_temp, "outputs/fitness_temp.rds")
 
-png("figs/Fig7_dens_climate.png", height = 8.5, width = 7.5, res = 300, units = "in")
-(survival_temp & theme(plot.tag.position = c(0.02,0.85))) +
-(survival_vwc & theme(plot.tag.position = c(0.02,0.85))) +
-(fecundity_temp & theme(plot.tag.position = c(0.02,1))) +
-(fecundity_vwc & theme(plot.tag.position = c(0.02,1))) +
-  (fitness_temp & theme(plot.tag.position = c(0.02,1))) +
-  (fitness_vwc & theme(plot.tag.position = c(0.02,1)))+
-  plot_annotation(tag_levels = "a") +
-  plot_layout(guides = "collect", axis_titles = "collect", nrow = 3) &
-  theme(legend.position = "top", legend.background=element_blank())
-dev.off()
+saveRDS(survival_vwc, "outputs/survival_vwc.rds")
+saveRDS(fecundity_vwc, "outputs/fecundity_vwc.rds")
+saveRDS(fitness_vwc, "outputs/fitness_vwc.rds")

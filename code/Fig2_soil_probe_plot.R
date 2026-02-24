@@ -2,7 +2,7 @@
 # Load libraries
 library(rjags);library(tidyverse);library(cmdstanr);library(posterior);
 library(bayesplot); library(janitor); library(patchwork); library(lubridate); 
-library(loo)
+library(loo); library(maps); library(ggrepel)
 
 
 # Source data for modeling 
@@ -28,10 +28,17 @@ cg_model_fecun %>%
          gravel = substr(site_year_gravel, 9, 13)) -> plot_data
 
 plot_data %>% 
+  # Change site names to include temp/moisture indicators
+  mutate(site = case_when(site == "SS" ~ "cold (SS)",
+                             site == "BA" ~ "cool & dry (BA)",
+                             site == "CH" ~ "cool & wet (CH)",
+                             site == "WI" ~ "hot (WI)")) %>% 
+  mutate(site = factor(site, levels = c("cold (SS)", "cool & wet (CH)",
+                                        "cool & dry (BA)", "hot (WI)"))) %>% 
   ggplot(aes(x = temp_fecun, y = vwc_avg)) +
   geom_point(size = 6, aes(color = site, fill = gravel, shape = year), stroke = 3) +
   scale_fill_manual(values = c("black", "white")) +
-  scale_color_manual(values = c("#0072B2", "#E69F00", "#009E73", "#CC79A7")) +
+  scale_color_manual(values = c("#2b83ba","#abdda4","#fdae61", "#d7191c")) +
   scale_shape_manual(values = c(21,22)) +
   theme_classic(base_size = 16) +
   labs(y = "average daily soil moisture\n(volumetric water content)",
@@ -39,52 +46,6 @@ plot_data %>%
   guides(colour = guide_legend(override.aes = list(size=5, stroke = 2)),
          fill = guide_legend(override.aes = list(size=5, stroke = 2, shape = 21)),
          shape = guide_legend(override.aes = list(size=5, stroke = 2)))-> xy_plot
-
-# plot_data %>% 
-#   ggplot(aes(x = temp_fecun, y = 0)) +
-#   annotate("segment",x=3,xend=15, y=0, yend=0, linewidth=2) +
-#   annotate("segment",x=3,xend=3, y=-0.1,yend=0.1, linewidth=2) +
-#   annotate("segment",x=15,xend=15, y=-0.1,yend=0.1, linewidth=2) +
-#   annotate("text", x = 3, y = 0, label = "3", vjust = 2, size = 5) +
-#   annotate("text", x = 15, y = 0, label = "15", vjust = 2, size = 5) +
-#   geom_point(size = 15, shape = 21, aes(color = site, fill = gravel), stroke = 3, alpha = 0.8) +
-#   ggrepel::geom_text_repel(aes(label = site_year), col="black", nudge_y = 1, fontface = "bold") +
-#   scale_x_continuous(limits = c(3,15)) +
-#   scale_y_continuous(limits = c(-1,1)) +
-#   theme(panel.background = element_blank(),
-#         axis.text = element_blank(),
-#         axis.ticks = element_blank(),
-#         axis.title = element_blank(),
-#         legend.position = "none") +
-#   scale_fill_manual(values = c("black", "white")) +
-#   scale_color_manual(values = c("#44AA99", "#AA4499", "#332288", "#6699CC")) +
-#   ggtitle("Temperature (°C)")-> a
-
-
-# plot_data %>% 
-#   ggplot(aes(x = vwc_avg, y = 0, color = color)) +
-#   annotate("segment",x=0.10,xend=0.25, y=0, yend=0, linewidth=2) +
-#   annotate("segment",x=0.10,xend=0.10, y=-0.1,yend=0.1, linewidth=2) +
-#   annotate("segment",x=0.25,xend=0.25, y=-0.1,yend=0.1, linewidth=2) +
-#   annotate("text", x = 0.10, y = 0, label = "10", vjust = 2, size = 5) +
-#   annotate("text", x = 0.25, y = 0, label = "25", vjust = 2, size = 5) +
-#   geom_point(size = 15, shape = 21, aes(color = site, fill = gravel, linetype = year), stroke = 3, alpha = 0.8) +
-#   ggrepel::geom_text_repel(aes(label = site_year), col="black", nudge_y = 1, fontface = "bold") +
-#   scale_x_continuous(limits = c(0.10,0.25)) +
-#   scale_y_continuous(limits = c(-1,1)) +
-#   theme(panel.background = element_blank(),
-#         axis.text = element_blank(),
-#         axis.ticks = element_blank(),
-#         axis.title = element_blank(),
-#         legend.position = "none") +
-#   scale_fill_manual(values = c("black", "white")) +
-#   scale_color_manual(values = c("#44AA99", "#AA4499", "#332288", "#6699CC")) +
-#   ggtitle("Soil moisture (% vwc)") -> b
-
-# Load packages
-library(ggplot2)
-library(maps)
-library(ggrepel)
 
 # Sample GPS coordinates in Wyoming and Idaho
 gps_data <- data.frame(
@@ -108,11 +69,12 @@ ggplot() +
   theme_minimal(base_size = 16) +
   labs(x = "longitude", y = "latitude") +
   theme(legend.position = "none") +
-  scale_color_manual(values = c("#0072B2", "#E69F00", "#009E73", "#CC79A7")) +
-  annotate(geom = "text", x = -114.4, y = 41.7, label = "(1573 m)", color = "#0072B2", size = 5)+ 
-  annotate(geom = "text", x = -109, y = 44.8, label = "(1647 m)", color = "#009E73", size = 5)+ 
-  annotate(geom = "text", x = -107.7, y = 41.6, label = "(1915 m)", color = "#E69F00", size = 5)+ 
-  annotate(geom = "text", x = -114.6, y = 43.8, label = "(823 m)", color = "#CC79A7", size = 5)-> map
+  scale_color_manual(values = c("#fdae61", "#abdda4", "#2b83ba", "#d7191c")) +
+  annotate(geom = "text", x = -114.4, y = 41.7, label = "(1573 m)", color = "#fdae61", size = 5)+ 
+  annotate(geom = "text", x = -109, y = 44.8, label = "(1647 m)", color = "#2b83ba", size = 5)+ 
+  annotate(geom = "text", x = -107.7, y = 41.6, label = "(1915 m)", color = "#abdda4", size = 5)+ 
+  annotate(geom = "text", x = -114.6, y = 43.8, label = "(823 m)", color = "#d7191c", size = 5)-> map
+
 
 design <- "BBBAAA
            BBBAAA
@@ -121,6 +83,5 @@ design <- "BBBAAA
            CCCAAA"
 
 fig2 <- xy_plot + map + plot_spacer() + plot_layout(design = design)
-ggsave(filename = "figs/Fig2_setup.svg", plot = fig2, width = 11.88, height = 5.66)
+ggsave(filename = "figs/Fig2_setup.svg", plot = fig2, width = 12.88, height = 6.66)
 
-dev.off()

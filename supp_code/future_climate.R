@@ -137,7 +137,7 @@ mod_temp_surv <- lm(soil_temp_surv ~ bioclim_1, data = anntemp_soiltemp)
 summary(mod_temp_surv) # 0.8148
 
 # Get predicted soil temp for each source site based on 30-year climate norm
-df_bioclim_all %>%
+pca_df %>%
   mutate(soil_temp_fecun = coef(mod_temp_fecun)[1] + coef(mod_temp_fecun)[2]*bioclim_1,
          soil_temp_surv = coef(mod_temp_surv)[1] + coef(mod_temp_surv)[2]*bioclim_1) %>%
   dplyr::select(site_code, soil_temp_fecun, soil_temp_surv) %>%
@@ -159,7 +159,7 @@ cg_model %>%
   filter(survived == 1) -> cg_model_fecun
 
 # Center and scale continuous variables, make factors, make survival response
-# binary
+# binary (from previous model fits)
 clim_dist_sc_mean_f <- attr(scale(cg_model_fecun$clim_dist), "scaled:center")
 clim_dist_sc_sd_f <- attr(scale(cg_model_fecun$clim_dist), "scaled:scale")
 
@@ -175,6 +175,7 @@ cg_model_surv_sc_sd <- attr(scale(cg_model$temp_surv), "scaled:scale")
 genotype <- as.factor(cg_model_fecun$genotype)
 genotype_id <- as.numeric(as.factor(cg_model_fecun$genotype))
 
+# Read in GPS values for source sites
 gps <- read_csv("https://raw.githubusercontent.com/pbadler/bromecast-data/refs/heads/main/gardens/deriveddata/BioclimateOfOrigin_AllGenotypes.csv")
 
 gps %>%

@@ -1,4 +1,4 @@
-# This code creates Figure 5: local adaptation evidence from climate mismatch
+# This code creates Figure 4: local adaptation evidence from climate mismatch
 
 ## Preliminaries ####
 
@@ -131,7 +131,8 @@ for (i in 1:ncol(pred_fit)){
   x_max_fit[i] <- seq_climdists[which(pred_fit[,i] == max(pred_fit[,i]))]
 }
 
-mu_max_fit <- mean(x_max_fit)
+mu_max_fit <- mean(x_max_fit) # 0.6288144
+quantile(x_max_fit, c(0.025, 0.975)) # -0.4582679  1.7175890 
 
 tibble(lower = fitness[1,],
        upper = fitness[3,],
@@ -164,24 +165,7 @@ climdist_plot_fitness + climdist_plot_s + climdist_plot +
   plot_layout(guides = "collect", design = design) +
   plot_annotation(tag_levels = "a") -> local_adaptation
 
-png("figs/Fig5_localadapt.png", height = 8.25, width = 7.2, res = 300, units = "in")
+png("figs/Fig4_localadapt.png", height = 8.25, width = 7.2, res = 300, units = "in")
 local_adaptation
 dev.off()
 
-# Find biggest change in fitness
-exp(min(fitness[2,])) # 12.5285
-exp(min(fitness[1,])) # 3.647208
-exp(min(fitness[3,])) # 40.82151
-
-exp(max(fitness[2,])) # 42.0003
-exp(max(fitness[1,])) # 15.5958
-exp(max(fitness[3,])) # 109.9494
-
-# Do x_max calculations for survival and fecundity models too
-x_max_f <- -draws$`beta[4]`/(2*draws$`beta[5]`)
-mean(x_max_f) # -0.08223475
-quantile(x_max_f, c(0.025, 0.975)) # -0.4204943  0.2621730 
-
-x_max_s <- -draws_s$`beta[4]`/(2*draws_s$`beta[5]`)
-mean(x_max_s) # 0.5797457
-quantile(x_max_s, c(0.025, 0.975)) # 0.06151521 1.29968450

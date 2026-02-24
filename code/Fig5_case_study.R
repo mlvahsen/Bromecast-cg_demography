@@ -1,6 +1,6 @@
-# Plot predicted fitness for case study genotypes to see predicted effects
-# (Shriver01 [Joshua Tree, CA], Chynoweth05 [Vernal, UT], AAFC09
-# [Summerland, BC])
+# This code creates Figure 5 which olots predicted fitness for "case study"
+# genotypes to see predicted effects (Shriver01 [Joshua Tree, CA], Chynoweth05
+# [Vernal, UT], AAFC09 [Summerland, BC]).
 
 ## Preliminaries ####
 library(tidyverse)
@@ -117,27 +117,32 @@ f_data_5 <- x_variables_f %>% filter(genotype == 6)
 f_data_88 <- x_variables_f %>% filter(genotype == 98)
 
 # Need to get scaled temperature from cg_model dataset
+temp_mean <- attr(scale(cg_model_fecun$temp_fecun), "scaled:center")
+temp_sd <- attr(scale(cg_model_fecun$temp_fecun), "scaled:scale")
+vwc_mean <- attr(scale(cg_model_fecun$vwc_avg), "scaled:center")
+vwc_sd <- attr(scale(cg_model_fecun$vwc_avg), "scaled:scale")
+
 (cg_model %>% filter(site == "CH" & year == 2023 & albedo == "white") %>% 
-    pull(temp_fecun) %>% unique() - 9.237818) / 3.223435 # -1.249972
+    pull(temp_fecun) %>% unique() - temp_mean) / temp_sd -> CH_temp_sc
 # Need to get scaled vwc from cg_model dataset
 (cg_model %>% filter(site == "CH" & year == 2023 & albedo == "white") %>% 
-    pull(vwc_avg) %>% unique() - 0.1548502) / 0.03055884 # 2.048437
+    pull(vwc_avg) %>% unique() - vwc_mean) / vwc_sd -> CH_vwc_sc # 2.048437
 
 fecun_gen91_low <- (coef_list$alpha_f + coef_list$intercepts_f[,91]) +
-  (coef_list$beta_f$temp + coef_list$slopes_f$temp[,91]) * -1.249972 +
-  (coef_list$beta_f$vwc + coef_list$slopes_f$vwc[,91]) * 2.048437 +
+  (coef_list$beta_f$temp + coef_list$slopes_f$temp[,91]) * CH_temp_sc +
+  (coef_list$beta_f$vwc + coef_list$slopes_f$vwc[,91]) * CH_vwc_sc +
   coef_list$beta_f$clim * f_data_91$clim_dist_sc[1] +
   coef_list$beta_f$clim2 * f_data_91$clim_dist_sc2[1]
 
 fecun_gen5_low <- (coef_list$alpha_f + coef_list$intercepts_f[,5]) +
-  (coef_list$beta_f$temp + coef_list$slopes_f$temp[,5]) * -1.249972 +
-  (coef_list$beta_f$vwc + coef_list$slopes_f$vwc[,5]) * 2.048437 +
+  (coef_list$beta_f$temp + coef_list$slopes_f$temp[,5]) * CH_temp_sc +
+  (coef_list$beta_f$vwc + coef_list$slopes_f$vwc[,5]) * CH_vwc_sc +
   coef_list$beta_f$clim * f_data_5$clim_dist_sc[1] +
   coef_list$beta_f$clim2 * f_data_5$clim_dist_sc2[1]
 
 fecun_gen88_low <- (coef_list$alpha_f + coef_list$intercepts_f[,88]) +
-  (coef_list$beta_f$temp + coef_list$slopes_f$temp[,88]) * -1.249972 +
-  (coef_list$beta_f$vwc + coef_list$slopes_f$vwc[,88]) * 2.048437 +
+  (coef_list$beta_f$temp + coef_list$slopes_f$temp[,88]) * CH_temp_sc +
+  (coef_list$beta_f$vwc + coef_list$slopes_f$vwc[,88]) * CH_vwc_sc +
   coef_list$beta_f$clim * f_data_88$clim_dist_sc[1] +
   coef_list$beta_f$clim2 * f_data_88$clim_dist_sc2[1]
 
@@ -277,14 +282,14 @@ ggplot() +
            color = "#4B5099", size = 6) +
   annotate(geom = "segment", x = -119.8, y = 49.62, xend = -117, yend = 47.9, color = "#4B5099") -> map
 
-png("figs/Fig6_casestudy.png", height = 5.82, width = 9.64, res = 300, units = "in")
+png("figs/Fig5_casestudy.png", height = 5.82, width = 9.64, res = 300, units = "in")
 map + case_1 + plot_annotation(tag_levels = "a")
 dev.off()
 
 # Get effect size for Joshua Tree (calculate median instead of mean bc very skewed)
 median(exp(lnfit_gen91_high) / exp(lnfit_gen91_low))
-# 3.598363 times more seeds on the original scale
+# 3.521026 times more seeds on the original scale
 
 # Get effect size for Joshua Tree (calculate median instead of mean bc very skewed)
 median(exp(lnfit_gen5_low) / exp(lnfit_gen5_high))
-# 2.791374 times more seeds on the original scale
+# 2.819936 times more seeds on the original scale
