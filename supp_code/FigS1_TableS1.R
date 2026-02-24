@@ -47,7 +47,7 @@ ggplot(data=region, aes(x=long, y=lat, group = group)) +
        shape = "Common garden") +
   scale_shape_manual(values = c(2,5,0,6)) -> plot
 
-png("figs/SuppFig_SourceLocations.png", height = 8, width = 6.2, units = "in", res = 300)
+png("figs/FigS1_SourceLocations.png", height = 8, width = 6.2, units = "in", res = 300)
 plot & theme(legend.position = "bottom",
            legend.key.width=unit(1.5,"cm")) &
   labs(fill = "PC 1 (hot & dry → cool & wet)") &

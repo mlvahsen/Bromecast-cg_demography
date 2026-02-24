@@ -173,10 +173,10 @@ accuracy(tp = plot_data %>% filter(Metric == "true_pos") %>% pull(mean),
          n = length(cg_model$survived)) 
 # 0.663305
 
-png("figs/FigS2_PPC.png", height = 7.3, width = 4.3, units = "in", res = 300)
+png("figs/FigS3_PPC.png", height = 7.3, width = 4.3, units = "in", res = 300)
 ppc_mean_plot / ppc_sd_plot / ppc_surv_plot + plot_annotation(tag_level = "a")
 dev.off()
 
-png("figs/FigS3_modelperform.png", height = 4.5, width = 10, units = "in", res = 300)
+png("figs/FigS4_modelperform.png", height = 4.5, width = 10, units = "in", res = 300)
 surv_perform + fecun_perform + plot_annotation(tag_levels = "a")
 dev.off()
