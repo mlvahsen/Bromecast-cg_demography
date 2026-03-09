@@ -294,6 +294,105 @@ temp_plot
 dev.off()
 
 
+## Fitness subplots (temp) ####
+
+# Need to line up genotype indexing
+genotype_ids_f <- as.numeric(as.factor(cg_model_fecun$genotype))
+genotype_ids_s <- as.numeric(as.factor(cg_model$genotype))
+
+tibble(genotype = factor(genotype_ids_f),
+       genotype_id = cg_model_fecun$genotype) %>% 
+  distinct() %>% 
+  arrange(genotype) %>% 
+  print(n = Inf)
+
+tibble(genotype = factor(genotype_ids_s),
+       genotype_id = cg_model$genotype) %>% 
+  distinct() %>% 
+  arrange(genotype) %>% 
+  print(n = Inf)
+
+# Ok these should be the same and will line up
+ln_fitness_genotypes <- list()
+
+for (i in 1:length(unique(genotype_ids_f))){
+  ln_fitness_genotypes[[i]] <- log(exp(genotype_samples_f[[i]])*plogis(genotype_samples_s[[i]]))
+}
+
+result <- as.data.frame(sapply(ln_fitness_genotypes, function(df) rowMeans(df)))
+
+names(result) <- paste("g", 1:96, sep = "_")
+result %>% 
+  mutate(temp = seq_temp) %>% 
+  gather(key = genotype, value = ln_fitness, g_1:g_96) %>% 
+  mutate(genotype = as.factor(parse_number(genotype))) -> fitness_preds
+
+# Get genotype numeric codes that were used in fitting the model and line them
+# back up with true codes
+tibble(genotype = factor(genotype_ids),
+       genotype_id = cg_model$genotype) %>% 
+  distinct() %>% 
+  merge(fitness_preds) %>% 
+  dplyr::select(genotype = genotype_id, temp, ln_fitness) ->fitness_preds
+
+
+# Get in PC1 values by genotype
+cg_model %>% 
+  dplyr::select(genotype, PC1) %>% 
+  distinct() %>% 
+  merge(fitness_preds) -> fitness_preds
+
+fitness_preds %>% 
+  ggplot(aes(x = temp, y = ln_fitness, group = genotype, color = PC1)) +
+  geom_line(linewidth = 0.5) +
+  theme_classic(base_size = 16) +
+  labs(y = "ln(fitness)",
+       x = "soil temperature (°C)") +
+  scale_color_distiller(palette = "RdYlBu", direction = 1) +
+  ylim(2.4,4.5)-> temp_fitness_rxn
+
+temp_fitness <- fitness_preds
+
+temp_fitness %>% 
+  filter(temp == min(temp_fitness$temp) | temp == max(temp_fitness$temp)) %>% 
+  group_by(genotype) %>% 
+  slice_min(temp) -> low_temp
+
+temp_fitness %>% 
+  filter(temp == min(temp_fitness$temp) | temp == max(temp_fitness$temp)) %>% 
+  group_by(genotype) %>% 
+  slice_max(temp) %>% 
+  cbind(fitness2 = low_temp$ln_fitness) %>% 
+  mutate(diff_fit = ln_fitness - fitness2) %>% 
+  mutate(slope = diff_fit / (max(temp_fitness$temp) - min(temp_fitness$temp))) -> slope_fitness
+
+coef(summary(lm(slope ~ PC1, data = slope_fitness)))[2,1] -> slope_fit
+confint(lm(slope ~ PC1, data = slope_fitness))[2,] -> conf_int_fit
+
+slope_fitness %>% 
+  ggplot(aes(x = PC1, y = slope, color = PC1)) +
+  geom_point(size = 2) +
+  theme_classic(base_size = 16) +
+  labs(x = "PC 1",
+       y =expression(paste(Delta, "ln(fitness)/", Delta, "temp."))) +
+  scale_color_distiller(palette = "RdYlBu", direction = 1) +
+  geom_hline(aes(yintercept = 0), color = "gray47", linewidth = 1.2) +
+  geom_smooth(method = "lm", se = T, color = "black", linetype = "dashed")+
+  ylim(-0.07, 0.12) +
+  # Adding annotation with slope and 95% CI
+  annotate(
+    "text",
+    x = Inf, y = Inf,
+    label = sprintf(
+      "italic(beta)==%.3f*' [%.3f, %.3f]'",
+      slope_fit, conf_int_fit[1], conf_int_fit[2]
+    ),
+    parse = TRUE,
+    hjust = 1.1, vjust = 1.1,
+    size = beta_size
+  )-> temp_fitness_b
+
+
 ## Fecundity subplots (vwc) ####
 draws <- fit$draws(format = "df")
 
@@ -521,105 +620,6 @@ a_vwc_s + b_vwc_s +
 png("figs/FigS6_vwc_rxn.png", height = 8, width = 8, res = 300, units = "in")
 vwc_plot
 dev.off()
-
-## Fitness subplots (temp) ####
-
-# Need to line up genotype indexing
-genotype_ids_f <- as.numeric(as.factor(cg_model_fecun$genotype))
-genotype_ids_s <- as.numeric(as.factor(cg_model$genotype))
-
-tibble(genotype = factor(genotype_ids_f),
-       genotype_id = cg_model_fecun$genotype) %>% 
-  distinct() %>% 
-  arrange(genotype) %>% 
-  print(n = Inf)
-
-tibble(genotype = factor(genotype_ids_s),
-       genotype_id = cg_model$genotype) %>% 
-  distinct() %>% 
-  arrange(genotype) %>% 
-  print(n = Inf)
-
-# Ok these should be the same and will line up
-ln_fitness_genotypes <- list()
-
-for (i in 1:length(unique(genotype_ids_f))){
-  ln_fitness_genotypes[[i]] <- log(exp(genotype_samples_f[[i]])*plogis(genotype_samples_s[[i]]))
-}
-
-result <- as.data.frame(sapply(ln_fitness_genotypes, function(df) rowMeans(df)))
-
-names(result) <- paste("g", 1:96, sep = "_")
-result %>% 
-  mutate(temp = seq_temp) %>% 
-  gather(key = genotype, value = ln_fitness, g_1:g_96) %>% 
-  mutate(genotype = as.factor(parse_number(genotype))) -> fitness_preds
-
-# Get genotype numeric codes that were used in fitting the model and line them
-# back up with true codes
-tibble(genotype = factor(genotype_ids),
-       genotype_id = cg_model$genotype) %>% 
-  distinct() %>% 
-  merge(fitness_preds) %>% 
-  dplyr::select(genotype = genotype_id, temp, ln_fitness) ->fitness_preds
-
-
-# Get in PC1 values by genotype
-cg_model %>% 
-  dplyr::select(genotype, PC1) %>% 
-  distinct() %>% 
-  merge(fitness_preds) -> fitness_preds
-
-fitness_preds %>% 
-  ggplot(aes(x = temp, y = ln_fitness, group = genotype, color = PC1)) +
-  geom_line(linewidth = 0.5) +
-  theme_classic(base_size = 16) +
-  labs(y = "ln(fitness)",
-       x = "soil temperature (°C)") +
-  scale_color_distiller(palette = "RdYlBu", direction = 1) +
-  ylim(2.4,4.5)-> temp_fitness_rxn
-
-temp_fitness <- fitness_preds
-
-temp_fitness %>% 
-  filter(temp == min(temp_fitness$temp) | temp == max(temp_fitness$temp)) %>% 
-  group_by(genotype) %>% 
-  slice_min(temp) -> low_temp
-
-temp_fitness %>% 
-  filter(temp == min(temp_fitness$temp) | temp == max(temp_fitness$temp)) %>% 
-  group_by(genotype) %>% 
-  slice_max(temp) %>% 
-  cbind(fitness2 = low_temp$ln_fitness) %>% 
-  mutate(diff_fit = ln_fitness - fitness2) %>% 
-  mutate(slope = diff_fit / (max(temp_fitness$temp) - min(temp_fitness$temp))) -> slope_fitness
-
-coef(summary(lm(slope ~ PC1, data = slope_fitness)))[2,1] -> slope_fit
-confint(lm(slope ~ PC1, data = slope_fitness))[2,] -> conf_int_fit
-
-slope_fitness %>% 
-  ggplot(aes(x = PC1, y = slope, color = PC1)) +
-  geom_point(size = 2) +
-  theme_classic(base_size = 16) +
-  labs(x = "PC 1",
-       y =expression(paste(Delta, "ln(fitness)/", Delta, "temp."))) +
-  scale_color_distiller(palette = "RdYlBu", direction = 1) +
-  geom_hline(aes(yintercept = 0), color = "gray47", linewidth = 1.2) +
-  geom_smooth(method = "lm", se = T, color = "black", linetype = "dashed")+
-  ylim(-0.07, 0.12) +
-  # Adding annotation with slope and 95% CI
-  annotate(
-    "text",
-    x = Inf, y = Inf,
-    label = sprintf(
-      "italic(beta)==%.3f*' [%.3f, %.3f]'",
-      slope_fit, conf_int_fit[1], conf_int_fit[2]
-    ),
-    parse = TRUE,
-    hjust = 1.1, vjust = 1.1,
-    size = beta_size
-  )-> temp_fitness_b
-
 
 ## Fitness subplot (vwc) ####
 # Ok these should be the same and will line up
