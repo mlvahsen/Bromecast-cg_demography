@@ -228,7 +228,8 @@ tibble(diff = quad_slope_high - quad_slope_low) %>%
   theme_classic(base_size = 16) +
   geom_vline(aes(xintercept = quantile(diff, 0.025)), linetype = "dashed") +
   geom_vline(aes(xintercept = quantile(diff, 0.975)), linetype = "dashed") -> a_fit
-  
+
+mean(quad_slope_high - quad_slope_low)# 0.003056657
 quantile(quad_slope_high - quad_slope_low, c(0.025, 0.975))
 # 2.5%         97.5% 
 # -0.0007397001  0.0070221524 
@@ -244,6 +245,7 @@ tibble(opt = opt_high - opt_low) %>%
   geom_vline(aes(xintercept = quantile(opt, 0.025)), linetype = "dashed") +
   geom_vline(aes(xintercept = quantile(opt, 0.975)), linetype = "dashed") -> b_fit
 
+mean(opt_high - opt_low) # 1.215485
 quantile(opt_high - opt_low, c(0.025, 0.975))
 # 2.5%      97.5% 
 # 0.03978238 2.57544456 
