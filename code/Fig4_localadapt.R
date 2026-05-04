@@ -134,6 +134,18 @@ for (i in 1:ncol(pred_fit)){
 mu_max_fit <- mean(x_max_fit) # 0.6288144
 quantile(x_max_fit, c(0.025, 0.975)) # -0.4582679  1.7175890 
 
+# Also calculate curvature parameter for derived quadratic relationship
+quad_slope <- NULL
+
+for(i in 1:ncol(pred_fit)){
+  quad_slope[i] <- as.numeric(coef(lm(pred_fit[,i] ~ seq_climdists + I(seq_climdists^2)))[3])
+}
+
+mean(quad_slope) # -0.3090755
+quantile(quad_slope, c(0.025, 0.975))
+# 2.5%      97.5% 
+# -0.6045418 -0.1383819 
+
 tibble(lower = fitness[1,],
        upper = fitness[3,],
        ln_fitness = fitness[2,],
