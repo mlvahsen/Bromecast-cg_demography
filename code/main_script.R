@@ -5,7 +5,11 @@ library(bayesplot); library(janitor); library(patchwork); library(lubridate);
 library(loo); library(cmdstanr)
 
 # Source data for modeling 
+
+# This code generates and cleans the data
 #source("supp_code/data_prep.R")
+
+# This is the clean form of the data that is the same as what is generated above
 cg_model <- read_csv("data/cg_model_data.csv")
 
 # Make data set of just plants that survived and reproduced
@@ -91,7 +95,7 @@ fit <- mod$sample(
 )
 
 # Get summary of all parameters
-summary = fit$summary()
+#summary = fit$summary()
 # Assess Gelman-Rubin statistics for all parameters
 #which(summary$rhat>=1.01) # All rhats are <1.01
 
@@ -100,9 +104,6 @@ posterior <- fit$draws(format = "df")
 
 # To save output files
 fit$save_output_files("outputs/")
-
-summary <- fit$summary()
-
 
 ## FECUNDITY MODEL WITHOUT RANDOM SLOPES ####
 
@@ -148,9 +149,9 @@ fit_noslopes$save_output_files("outputs/")
 ## Compare fecundity models ####
 
 # Read in models if not running them above
-fit <- as_cmdstan_fit(files = c("outputs/demo_model_fecun-202506031125-1-391f4a.csv",
-                                "outputs/demo_model_fecun-202506031125-2-391f4a.csv",
-                                "outputs/demo_model_fecun-202506031125-3-391f4a.csv"))
+fit <- as_cmdstan_fit(files = c("outputs/demo_model_fecun-202506091642-1-6d200d.csv",
+                                "outputs/demo_model_fecun-202506091642-2-6d200d.csv",
+                                "outputs/demo_model_fecun-202506091642-3-6d200d.csv"))
 
 fit_noslopes <- as_cmdstan_fit(files = c("outputs/demo_model_fecun_noslopes-202506120832-1-5e7c7c.csv",
                                          "outputs/demo_model_fecun_noslopes-202506120832-2-5e7c7c.csv",
@@ -171,9 +172,6 @@ fit$draws(format = "df") %>%
             lower = quantile(value, 0.025),
             upper = quantile(value, 0.975)) %>% 
   arrange(-mean)
-
-# Get summary of all parameters
-summary = fit$summary()
 
 ## SURVIVAL MODEL WITH RANDOM SLOPES ####
 
@@ -284,20 +282,17 @@ fit_s$draws(format = "df") %>%
             upper = quantile(value, 0.975)) %>% 
   arrange(-mean)
 
-# Get summary of all parameters
-summary_s = fit_s$summary()
-
 # Get all posterior draws for parameters
 posterior_s <- fit_s$draws()
 
 # Read in models if not running them above
-fit_s <- as_cmdstan_fit(files = c("outputs/demo_model_surv_noncenter-202506031158-1-25d6a2.csv",
-                                "outputs/demo_model_surv_noncenter-202506031158-2-25d6a2.csv",
-                                "outputs/demo_model_surv_noncenter-202506031158-3-25d6a2.csv"))
+fit_s <- as_cmdstan_fit(files = c("outputs/demo_model_surv_noncenter-202506091738-1-51da52.csv",
+                                "outputs/demo_model_surv_noncenter-202506091738-2-51da52.csv",
+                                "outputs/demo_model_surv_noncenter-202506091738-3-51da52.csv"))
 
-fit_s_noslopes <- as_cmdstan_fit(files = c("outputs/demo_model_surv_noslopes-202506041259-1-68ac02.csv",
-                                         "outputs/demo_model_surv_noslopes-202506041259-2-68ac02.csv",
-                                         "outputs/demo_model_surv_noslopes-202506041259-3-68ac02.csv"))
+fit_s_noslopes <- as_cmdstan_fit(files = c("outputs/demo_model_surv_noslopes-202506120913-1-9370b3.csv",
+                                         "outputs/demo_model_surv_noslopes-202506120913-2-9370b3.csv",
+                                         "outputs/demo_model_surv_noslopes-202506120913-3-9370b3.csv"))
 
 full_model_s <- fit_s$loo(variables = "log_likelihood_values")
 reduced_model_s <- fit_s_noslopes$loo(variables = "log_likelihood_values")
@@ -311,3 +306,7 @@ fit_s$draws(format = "df") %>%
             lower = quantile(value, 0.025),
             upper = quantile(value, 0.975)) %>% 
   arrange(-mean)
+
+# Get summary of all parameters with 95% credible intervals
+summary <- fit$summary(variables = NULL, "mean", "median", "sd", ~quantile(.x, probs = c(0.025, 0.975)))
+summary_s <- fit_s$summary(variables = NULL, "mean", "median", "sd", ~quantile(.x, probs = c(0.025, 0.975)))

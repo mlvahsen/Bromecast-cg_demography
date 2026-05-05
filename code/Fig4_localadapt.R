@@ -48,6 +48,9 @@ scale_s <- attr(scale(cg_model$clim_dist), "scaled:scale")
 
 x_peak_s_sc <- x_peak_s*scale_s + center_s
 
+# Get quantiles too for reporting
+quantile(-draws_s$`beta[4]`/(2*draws_s$`beta[5]`)*scale_s + center_s, c(0.025, 0.975))
+
 plogis(apply(store_climdists, 1, quantile, c(0.025, 0.5, 0.975))) -> sum_stat_climdists
 
 tibble(lower = sum_stat_climdists[1,],
@@ -96,6 +99,9 @@ center <- attr(scale(cg_model_fecun$clim_dist), "scaled:center")
 scale <- attr(scale(cg_model_fecun$clim_dist), "scaled:scale")
 
 x_peak_sc <- x_peak*scale + center
+quantile(-draws$`beta[4]`/(2*draws$`beta[5]`)*scale + center, c(0.025, 0.975))
+
+# Also get the 95% credible interval
 
 tibble(lower = sum_stat_climdist[1,],
        upper = sum_stat_climdist[3,],
